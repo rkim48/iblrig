@@ -3,7 +3,7 @@ import re
 from collections.abc import Callable
 from functools import cache
 from pathlib import Path
-from subprocess import STDOUT, CalledProcessError, SubprocessError, check_call, check_output
+from subprocess import CalledProcessError, SubprocessError, check_call, check_output
 from typing import Any, Literal
 
 import requests
@@ -11,7 +11,6 @@ from packaging import version
 
 from iblrig import __version__
 from iblrig.constants import BASE_DIR, IS_GIT, IS_VENV
-from iblrig.tools import cached_check_output, internet_available
 
 log = logging.getLogger(__name__)
 
@@ -68,69 +67,7 @@ def get_local_version() -> version.Version | None:
         return None
 
 
-def get_detailed_version_string(v_basic: str) -> str:
-    """
-    Generate a detailed version string based on a basic version string.
-
-    This function takes a basic version string (major.minor.patch) and generates
-    a detailed version string by querying Git for additional version information.
-    The detailed version includes commit number of commits since the last tag,
-    and Git status (dirty or broken). It is designed to fail safely.
-
-    Parameters
-    ----------
-    v_basic : str
-        A basic version string in the format 'major.minor.patch'.
-
-    Returns
-    -------
-    str
-        A detailed version string containing version information retrieved
-        from Git, or the original basic version string if Git information
-        cannot be obtained.
-
-    Notes
-    -----
-    This method will only work with installations managed through Git.
-    """
-    if not internet_available():
-        return v_basic
-
-    if not IS_GIT:
-        log.error('This installation of IBLRIG is not managed through git.')
-        return v_basic
-
-    # sanitize & check if input only consists of three fields - major, minor and patch - separated by dots
-    v_sanitized = re.sub(r'^(\d+\.\d+\.\d+).*$$', r'\1', v_basic)
-    if not re.match(r'^\d+\.\d+\.\d+$', v_sanitized):
-        log.error(f"Couldn't parse version string: {v_basic}")
-        return v_basic
-
-    # get details through `git describe`
-    try:
-        get_remote_tags()
-        v_detailed = check_output(
-            ['git', 'describe', '--dirty', '--broken', '--match', v_sanitized, '--tags', '--long'],
-            cwd=BASE_DIR,
-            text=True,
-            timeout=1,
-            stderr=STDOUT,
-        )
-    except (SubprocessError, CalledProcessError) as e:
-        log.debug(e, exc_info=True)
-        return v_basic
-
-    # apply a bit of regex magic for formatting & return the detailed version string
-    v_detailed = re.sub(r'^((?:[\d+\.])+)(-[1-9]\d*)?(?:-0\d*)?(?:-\w+)(-dirty|-broken)?\n?$', r'\1\2\3', v_detailed)
-    v_detailed = re.sub(r'-(\d+)', r'.post\1', v_detailed)
-    v_detailed = re.sub(r'\-(dirty|broken)', r'+\1', v_detailed)
-    return v_detailed
-
-
-OnErrorLiteral = Literal['raise', 'log', 'silence']
-
-
-def call_git(*args: str, cache_output: bool = True, on_error: OnErrorLiteral = 'raise') -> str | None:
+def call_git(*args: str, cache_output: bool = True, on_error: Literal['raise', 'log', 'silence'] = 'raise') -> str | None:
     """
     Call a git command with the specified arguments.
 
@@ -170,6 +107,8 @@ def call_git(*args: str, cache_output: bool = True, on_error: OnErrorLiteral = '
             log.error(message)
         return None
     try:
+        from iblrig.tools import cached_check_output
+
         output = cached_check_output(**kwargs) if cache_output else check_output(**kwargs)
         return str(output).strip()
     except SubprocessError as e:
@@ -226,6 +165,8 @@ def get_remote_tags() -> None:
     -----
     This method will only work with installations managed through Git.
     """
+    from iblrig.tools import internet_available
+
     if not internet_available():
         return
     if (branch := get_branch()) is None:
@@ -282,6 +223,8 @@ def get_remote_version() -> version.Version | None:
     -----
     This method will only work with installations managed through Git.
     """
+    from iblrig.tools import internet_available
+
     if not internet_available():
         log.error('Cannot obtain remote version: Not connected to internet')
         return None
@@ -345,6 +288,8 @@ def check_upgrade_prerequisites(exception_handler: Callable | None = None, *args
         if the script is not running within the IBLRIG virtual environment.
     """
     try:
+        from iblrig.tools import internet_available
+
         if not internet_available():
             raise ConnectionError('No connection to internet.')
         if not IS_GIT:

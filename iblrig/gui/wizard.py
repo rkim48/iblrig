@@ -1270,6 +1270,7 @@ class UpdateNotice(QtWidgets.QDialog, Ui_update):
 
 
 def main():
+    # argument parser
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--debug', action='store_true', dest='debug', help='increase logging verbosity')
     parser.add_argument(
@@ -1277,17 +1278,21 @@ def main():
     )
     args = parser.parse_args()
 
+    # set logging verbosity
     if args.debug:
         setup_logger(name=None, level='DEBUG')
     else:
         setup_logger(name='iblrig', level='INFO')
+
+    # set app information
     QtCore.QCoreApplication.setOrganizationName('International Brain Laboratory')
     QtCore.QCoreApplication.setOrganizationDomain('internationalbrainlab.org')
     QtCore.QCoreApplication.setApplicationName('IBLRIG Wizard')
-
     if os.name == 'nt':
         app_id = f'IBL.iblrig.wizard.{iblrig.__version__}'
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+
+    # instantiate app
     app = QtWidgets.QApplication(['', '--no-sandbox'])
     app.setStyle('Fusion')
     w = RigWizard(debug=args.debug, remote_devices=args.remote_devices)

@@ -7,10 +7,3 @@
 # >>> git tag 8.15.6
 # >>> git push origin --tags
 __version__ = '8.25.0'
-
-
-from iblrig.version_management import get_detailed_version_string
-
-# The following method call will try to get post-release information (i.e. the number of commits since the last tagged
-# release corresponding to the one above), plus information about the state of the local repository (dirty/broken)
-__version__ = get_detailed_version_string(__version__)
