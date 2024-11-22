@@ -727,11 +727,10 @@ class OSCClient(udp_client.SimpleUDPClient):
         :example: client.send2bonsai(trial_num=6, sim_freq=50)
         :return:
         """
-        for k in kwargs:
+        for k, v in kwargs.items():
             if k in self.OSC_PROTOCOL:
-                # need to convert basic numpy types to low-level python types for
-                # punch card generation OSC module, I might as well have written C code
-                value = kwargs[k].item() if isinstance(kwargs[k], np.generic) else kwargs[k]
+                # need to convert basic numpy types to low-level python types for OSC module
+                value = v.item() if isinstance(v, np.generic) else v
                 self.send_message(self.OSC_PROTOCOL[k]['mess'], self.OSC_PROTOCOL[k]['type'](value))
 
     def exit(self):

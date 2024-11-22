@@ -135,12 +135,10 @@ def get_session_path(path: str | Path) -> Path | None:
 
 def get_port_events(events: dict, name: str = '') -> list:
     out: list = []
-    for k in events:
-        if name in k:
-            out.extend(events[k])
-    out = sorted(out)
-
-    return out
+    for key, value in events.items():
+        if name in key:
+            out.extend(value)
+    return sorted(out)
 
 
 def truncated_exponential(scale: float = 0.35, min_value: float = 0.2, max_value: float = 0.5) -> float:
