@@ -6,5 +6,5 @@ Using IBLRIG v8
 .. include:: usage_copy.rst
 .. include:: usage_video.rst
 .. include:: usage_neuropixel.rst
-.. include:: uswage_neurophotometrics.rst
+.. include:: usage_neurophotometrics.rst
 
