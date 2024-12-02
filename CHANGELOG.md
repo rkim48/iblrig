@@ -1,6 +1,10 @@
 Changelog
 =========
 
+8.25.1
+------
+* changed: renamed menu item for getting V7 training status
+
 8.25.0
 ------
 * feature: fiber photometry loader

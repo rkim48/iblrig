@@ -776,7 +776,7 @@
   </widget>
   <action name="uiActionTrainingLevelV7">
    <property name="text">
-    <string>Get Training Level</string>
+    <string>Get Training Level (IBLRIG V7)</string>
    </property>
   </action>
   <action name="uiActionCalibrateFrame2ttl">
