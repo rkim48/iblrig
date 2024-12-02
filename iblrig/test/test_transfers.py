@@ -6,10 +6,14 @@ from datetime import datetime
 from pathlib import Path
 from unittest import mock
 
+import numpy as np
+import pandas as pd
+import pandera
 from packaging import version
 
 import ibllib
 import iblrig.commands
+import iblrig.neurophotometrics
 import iblrig.path_helper
 import iblrig.raw_data_loaders
 from ibllib.io import session_params
@@ -18,11 +22,6 @@ from iblrig.path_helper import HardwareSettings, load_pydantic_yaml
 from iblrig.test.base import TASK_KWARGS
 from iblrig.transfer_experiments import BehaviorCopier, EphysCopier, SessionCopier, VideoCopier
 from iblrig_tasks._iblrig_tasks_trainingChoiceWorld.task import Session
-import iblrig.neurophotometrics
-
-import numpy as np
-import pandas as pd
-import pandera
 
 
 def _create_behavior_session(ntrials=None, hard_crash=False, kwargs=None):
