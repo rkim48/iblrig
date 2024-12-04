@@ -22,7 +22,6 @@ from serial.serialutil import SerialException
 from serial.tools import list_ports
 
 from iblrig.pydantic_definitions import HardwareSettingsRotaryEncoder
-from iblrig.tools import static_vars
 from iblutil.util import Bunch
 from pybpod_rotaryencoder_module.module import RotaryEncoder as PybpodRotaryEncoder
 from pybpod_rotaryencoder_module.module_api import RotaryEncoderModule as PybpodRotaryEncoderModule
@@ -291,7 +290,6 @@ class Bpod(BpodIO):
         self.softcode_handler_function = original_softcode_handler
         return counter
 
-    @static_vars(supported=True)
     def set_status_led(self, state: bool) -> bool:
         if self.can_control_led and self._arcom is not None:
             try:
