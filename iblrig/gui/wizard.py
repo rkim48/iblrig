@@ -1066,7 +1066,11 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
                 self.tabWidget.setCurrentIndex(self.tabWidget.indexOf(self.tabLog))
             case 'Stop':
                 self.uiPushStart.setEnabled(False)
+
+                self.tabLog.narrativeTimerTimeout()
                 self.tabLog.narrativeUpdated.disconnect()
+                self.tabLog.plainTextEditNarrative.setEnabled(False)
+
                 if self.model.session_folder and self.model.session_folder.exists():
                     self.model.session_folder.joinpath('.stop').touch()
 
