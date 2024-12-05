@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QSettings, pyqtSlot
+from PyQt5.QtCore import QSettings, pyqtSlot, QTimer, pyqtSignal
 from PyQt5.QtGui import QBrush, QColorConstants, QFont
 from PyQt5.QtWidgets import QApplication, QWidget
 
@@ -6,6 +6,8 @@ from iblrig.gui.ui_tab_log import Ui_TabLog
 
 
 class TabLog(QWidget, Ui_TabLog):
+    narrativeUpdated = pyqtSignal(str)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -20,6 +22,19 @@ class TabLog(QWidget, Ui_TabLog):
 
         self.spinBoxFontSize.valueChanged.connect(self.setFontSize)
         self.spinBoxFontSize.setValue(self.settings.value('font_size', 11, int))
+
+        self.plainTextEditNarrative.textChanged.connect(self.narrativeChanged)
+        self.narrativeTimer = QTimer()
+        self.narrativeTimer.setSingleShot(True)
+        self.narrativeTimer.timeout.connect(self.narrativeTimerTimeout)
+
+    @pyqtSlot()
+    def narrativeChanged(self):
+        self.narrativeTimer.start(10000)
+
+    @pyqtSlot()
+    def narrativeTimerTimeout(self):
+        self.narrativeUpdated.emit(self.plainTextEditNarrative.toPlainText())
 
     @pyqtSlot()
     def clear(self):
