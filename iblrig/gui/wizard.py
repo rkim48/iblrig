@@ -16,7 +16,7 @@ from pathlib import Path
 import pyqtgraph as pg
 from pydantic import ValidationError
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QThreadPool
+from PyQt5.QtCore import QThreadPool, pyqtSlot
 from PyQt5.QtWidgets import QStyle
 from requests import HTTPError
 from serial import SerialException
@@ -969,6 +969,9 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
                 self.uiPushStart.setIcon(self.style().standardIcon(QStyle.SP_MediaStop))
                 self._enable_ui_elements()
 
+                self.tabLog.plainTextEditNarrative.clear()
+                self.tabLog.narrativeUpdated.connect(self._on_updated_narrative)
+
                 # Manage appended session
                 self.append_session = False
                 if self.previous_subject == self.model.subject and not self.model.hardware_settings.MAIN_SYNC:
@@ -1063,8 +1066,20 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
                 self.tabWidget.setCurrentIndex(self.tabWidget.indexOf(self.tabLog))
             case 'Stop':
                 self.uiPushStart.setEnabled(False)
+
+                self.tabLog.narrativeTimerTimeout()
+                self.tabLog.narrativeUpdated.disconnect()
+                self.tabLog.plainTextEditNarrative.setEnabled(False)
+
                 if self.model.session_folder and self.model.session_folder.exists():
                     self.model.session_folder.joinpath('.stop').touch()
+
+    @pyqtSlot(bytes)
+    def _on_updated_narrative(self, narrative: bytes):
+        """Update narrative.txt if text-field has been modified."""
+        self.model.session_folder.mkdir(parents=True, exist_ok=True)
+        with self.model.session_folder.joinpath('narrative.txt').open('w+b') as f:
+            f.write(narrative)
 
     def _on_read_standard_output(self):
         """
@@ -1196,6 +1211,7 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
             and len(self.uiListProjects.selectedIndexes()) > 0
             and len(self.uiListProcedures.selectedIndexes()) > 0
         )
+        self.tabLog.plainTextEditNarrative.setEnabled(is_running)
         self.uiPushPause.setEnabled(is_running)
         self.uiPushFlush.setEnabled(not is_running)
         self.uiPushReward.setEnabled(not is_running)
