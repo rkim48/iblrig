@@ -34,7 +34,7 @@ class TestRigWizardModel(unittest.TestCase):
         but we still round-up and import the custom tasks
         :return:
         """
-        tasks = {k:v for k,v in self.wizard.all_tasks.items() if v.parents[1].name == 'iblrig_tasks'}
+        tasks = {k: v for k, v in self.wizard.all_tasks.items() if v.parents[1].name == 'iblrig_tasks'}
         for task_name in tasks:
             with self.subTest(task_name=task_name):
                 parser = self.wizard.get_task_extra_parser(task_name)
