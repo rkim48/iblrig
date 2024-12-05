@@ -392,7 +392,7 @@ class Ui_wizard(object):
         self.uiPushPause.setText(_translate("wizard", "Pause"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabSession), _translate("wizard", "Session"))
         self.uiMenuTools.setTitle(_translate("wizard", "Tools"))
-        self.uiActionTrainingLevelV7.setText(_translate("wizard", "Get Training Level"))
+        self.uiActionTrainingLevelV7.setText(_translate("wizard", "Get Training Level (IBLRIG V7)"))
         self.uiActionCalibrateFrame2ttl.setText(_translate("wizard", "Calibrate Frame2TTL"))
         self.uiActionCalibrateValve.setText(_translate("wizard", "Calibrate Valve"))
         self.uiActionValidateHardware.setText(_translate("wizard", "Validate System"))

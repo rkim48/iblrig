@@ -125,5 +125,5 @@ class TestInstantiationTraining(BaseTestCases.CommonTestInstantiateTask):
                 }
             ],
         }
-        for k in ed:
-            assert ad[k] == ed[k], f'Failed on {k}'
+        for key, ed_value in ed.items():
+            assert ad[key] == ed_value, f'Failed on {key}'

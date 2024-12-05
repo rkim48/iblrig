@@ -13,10 +13,11 @@ from functools import cache
 from pathlib import Path
 from typing import Any, TypeVar
 
-from iblrig import version_management
+from iblrig import __version__ as iblrig_version
 from iblrig.constants import BONSAI_EXE, IS_GIT
 from iblrig.path_helper import create_bonsai_layout_from_template, load_pydantic_yaml
 from iblrig.pydantic_definitions import HardwareSettings, RigSettings
+from iblrig.version_management import get_branch, get_commit_hash, is_dirty
 from iblutil.util import get_mac
 
 log = logging.getLogger(__name__)
@@ -111,35 +112,6 @@ def get_anydesk_id(format_id: bool = True, silent: bool = False) -> str | None:
     return anydesk_id
 
 
-def static_vars(**kwargs) -> Callable[..., Any]:
-    """
-    Decorator to add static variables to a function.
-
-    This decorator allows you to add static variables to a function by providing
-    keyword arguments. Static variables are shared across all calls to the
-    decorated function.
-
-    Parameters
-    ----------
-    **kwargs
-        Keyword arguments where the keys are variable names and the values are
-        the initial values of the static variables.
-
-    Returns
-    -------
-    function
-        A decorated function with the specified static variables.
-    """
-
-    def decorate(func: Callable[..., Any]) -> Callable[..., Any]:
-        for k in kwargs:
-            setattr(func, k, kwargs[k])
-        return func
-
-    return decorate
-
-
-@static_vars(return_value=None)
 def internet_available(host: str = '8.8.8.8', port: int = 53, timeout: int = 3, force_update: bool = False) -> bool:
     """
     Check if the internet connection is available.
@@ -167,7 +139,7 @@ def internet_available(host: str = '8.8.8.8', port: int = 53, timeout: int = 3, 
     bool
         True if an internet connection is available, False otherwise.
     """
-    if not force_update and internet_available.return_value:
+    if not force_update and hasattr(internet_available, 'return_value'):
         return internet_available.return_value
     try:
         socket.setdefaulttimeout(timeout)
@@ -201,9 +173,7 @@ def _build_bonsai_cmd(
     debug: bool = False,
     bootstrap: bool = True,
     editor: bool = True,
-    wait: bool = True,
-    check: bool = False,
-    bonsai_executable: str | Path = None,
+    bonsai_executable: Path = BONSAI_EXE,
 ) -> subprocess.Popen[bytes] | subprocess.Popen[str | bytes | Any] | subprocess.CompletedProcess:
     """
     Execute a Bonsai workflow within a subprocess call.
@@ -223,6 +193,8 @@ def _build_bonsai_cmd(
         Enable Bonsai bootstrapping if True (default is True).
     editor : bool, optional
         Enable Bonsai editor if True (default is True).
+    bonsai_executable : Path
+        Path to bonsai executable. Defaults to iblrig.constants.BONSAI_EXE.
 
     Returns
     -------
@@ -235,7 +207,6 @@ def _build_bonsai_cmd(
         If the Bonsai executable does not exist.
         If the specified workflow file does not exist.
     """
-    bonsai_executable = BONSAI_EXE if bonsai_executable is None else bonsai_executable
     if not bonsai_executable.exists():
         raise FileNotFoundError(bonsai_executable)
     workflow_file = Path(workflow_file)
@@ -265,7 +236,7 @@ def call_bonsai(
     editor: bool = True,
     wait: bool = True,
     check: bool = False,
-    bonsai_executable: str | Path = None,
+    bonsai_executable: Path = BONSAI_EXE,
 ) -> subprocess.Popen[bytes] | subprocess.Popen[str | bytes | Any] | subprocess.CompletedProcess:
     """
     Execute a Bonsai workflow within a subprocess call.
@@ -290,6 +261,8 @@ def call_bonsai(
     check : bool, optional
         Raise CalledProcessError if Bonsai process exits with non-zero exit code (default is False).
         Only applies if wait is True.
+    bonsai_executable : Path
+        Path to bonsai executable. Defaults to iblrig.constants.BONSAI_EXE.
 
     Returns
     -------
@@ -303,7 +276,7 @@ def call_bonsai(
         If the specified workflow file does not exist.
 
     """
-    cmd = _build_bonsai_cmd(workflow_file, parameters, start, debug, bootstrap, editor, bonsai_executable=bonsai_executable)
+    cmd = _build_bonsai_cmd(workflow_file, parameters, start, debug, bootstrap, editor, bonsai_executable)
     cwd = Path(workflow_file).parent
     log.info(f'Starting Bonsai workflow `{workflow_file.name}`')
     log.debug(' '.join(map(str, cmd)))
@@ -396,7 +369,7 @@ cached_check_output = cache(subprocess.check_output)
 def get_lab_location_dict(hardware_settings: HardwareSettings, iblrig_settings: RigSettings) -> dict[str, Any]:
     lab_location = dict()
     lab_location['rig_name'] = hardware_settings.RIG_NAME
-    lab_location['iblrig_version'] = str(version_management.get_local_version())
+    lab_location['iblrig_version'] = iblrig_version
     lab_location['last_seen'] = date.today().isoformat()
 
     machine = dict()
@@ -410,14 +383,13 @@ def get_lab_location_dict(hardware_settings: HardwareSettings, iblrig_settings: 
 
     git = dict()
     git['is_git'] = IS_GIT
-    git['branch'] = version_management.get_branch()
-    git['commit_id'] = version_management.get_commit_hash()
-    git['is_dirty'] = version_management.is_dirty()
+    git['branch'] = get_branch()
+    git['commit_id'] = get_commit_hash()
+    git['is_dirty'] = is_dirty()
     lab_location['git'] = git
 
     # TODO: add hardware/firmware versions of bpod, soundcard, rotary encoder, frame2ttl, ambient module, etc
     # TODO: add validation errors/warnings
-
     return lab_location
 
 

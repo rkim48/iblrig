@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from iblrig.constants import BONSAI_EXE
-from iblrig.tools import ask_user, call_bonsai, internet_available, static_vars
+from iblrig.tools import ask_user, call_bonsai, internet_available
 
 
 class TestAskUser(unittest.TestCase):
@@ -29,18 +29,6 @@ class TestAskUser(unittest.TestCase):
     def test_ask_user_with_invalid_input(self, mock_input):
         result = ask_user('Do you want to continue?')
         self.assertFalse(result)
-
-
-class TestStaticVarsDecorator(unittest.TestCase):
-    def test_static_vars_decorator(self):
-        @static_vars(var1=1, var2='test')
-        def test_function():
-            return test_function.var1, test_function.var2
-
-        self.assertEqual(test_function(), (1, 'test'))
-        test_function.var1 = 42
-        test_function.var2 = 'modified'
-        self.assertEqual(test_function(), (42, 'modified'))
 
 
 class TestInternetAvailableFunction(unittest.TestCase):

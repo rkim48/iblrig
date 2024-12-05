@@ -21,11 +21,11 @@ dependencies = [
     "PyQtWebEngine-Qt5==5.15.2",
     #
     # IBL packages
-    "iblatlas>=0.5.4",
-    "ibllib>=2.40.1",
+    "iblatlas>=0.5.5",
+    "ibllib>=3.1.0",
     "iblpybpod @ git+https://github.com/int-brain-lab/iblpybpod.git@no-gui",
     "iblutil>=1.14.0",
-    "iblqt>=0.2.0",
+    "iblqt>=0.3.1",
     "ONE-api>=2.11.1",
     "tycmd-wrapper>=0.2.1",
     #
