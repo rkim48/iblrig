@@ -1,9 +1,12 @@
 Changelog
 =========
 
-8.25.1
+8.26.0
 ------
+* feature: added GUI field for session narrative
 * changed: renamed menu item for getting V7 training status
+* changed: documentation and tests
+* removed: detailed version strings for IBLRIG (+dirty etc)
 
 8.25.0
 ------
