@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'iblrig/gui/ui_tab_log.ui'
+# Form implementation generated from reading ui file 'iblrig\gui\ui_tab_log.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.10
 #
@@ -109,6 +109,7 @@ class Ui_TabLog(object):
         self.pushButtonClipboard.setStatusTip(_translate("TabLog", "Copy log to clipboard"))
         self.pushButtonClipboard.setText(_translate("TabLog", " &Copy"))
         self.groupsBoxNarrative.setTitle(_translate("TabLog", "Session Narrative"))
+        self.plainTextEditNarrative.setPlaceholderText(_translate("TabLog", "Enter your obvservations here ..."))
 from iblrig.gui import resources_rc
 
 

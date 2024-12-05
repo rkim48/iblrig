@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'iblrig/gui/ui_login.ui'
+# Form implementation generated from reading ui file 'iblrig\gui\ui_login.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.10
 #

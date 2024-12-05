@@ -1070,9 +1070,11 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
                 if self.model.session_folder and self.model.session_folder.exists():
                     self.model.session_folder.joinpath('.stop').touch()
 
-    @pyqtSlot(str)
-    def _on_updated_narrative(self, narrative: str):
-        with self.model.session_folder.joinpath('narrative.txt').open('w') as f:
+    @pyqtSlot(bytes)
+    def _on_updated_narrative(self, narrative: bytes):
+        """Update narrative.txt if text-field has been modified."""
+        self.model.session_folder.mkdir(parents=True, exist_ok=True)
+        with self.model.session_folder.joinpath('narrative.txt').open('w+b') as f:
             f.write(narrative)
 
     def _on_read_standard_output(self):

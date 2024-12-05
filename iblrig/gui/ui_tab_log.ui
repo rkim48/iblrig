@@ -188,7 +188,11 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
-           <widget class="QPlainTextEdit" name="plainTextEditNarrative"/>
+           <widget class="QPlainTextEdit" name="plainTextEditNarrative">
+            <property name="placeholderText">
+             <string>Enter your obvservations here ...</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
