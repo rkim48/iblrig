@@ -6,6 +6,7 @@ from iblrig.gui.ui_tab_log import Ui_TabLog
 
 
 class TabLog(QWidget, Ui_TabLog):
+    _narrative = b''
     narrativeUpdated = pyqtSignal(bytes)
 
     def __init__(self, *args, **kwargs):
@@ -34,7 +35,10 @@ class TabLog(QWidget, Ui_TabLog):
 
     @pyqtSlot()
     def narrativeTimerTimeout(self):
-        self.narrativeUpdated.emit(str.encode(self.plainTextEditNarrative.toPlainText()))
+        narrative = str.encode(self.plainTextEditNarrative.toPlainText())
+        if narrative != self._narrative:
+            self.narrativeUpdated.emit(narrative)
+            self._narrative = narrative
 
     @pyqtSlot()
     def clear(self):
