@@ -144,6 +144,8 @@ def training_contrasts_probabilities(phase=1):
             frequencies = np.abs(CONTRASTS) >= 0
         case 5:  # The 50% contrast is removed from the set
             frequencies = np.abs(CONTRASTS) != 0.5
+        case _:
+            raise ValueError(f'{phase} is not a valid value for training phase')
     return frequencies / np.sum(frequencies)
 
 

@@ -3,8 +3,8 @@ from datetime import date
 from pathlib import Path
 from typing import Annotated, Literal
 
+import numpy as np
 import pandas as pd
-import pydantic_core
 from annotated_types import Ge, Le
 from pydantic import (
     AnyUrl,
@@ -20,7 +20,6 @@ from pydantic import (
     field_validator,
 )
 from pydantic_core._pydantic_core import PydanticUndefined
-import numpy as np
 
 from iblrig.constants import BASE_PATH
 
@@ -244,7 +243,6 @@ class TrialDataModel(BaseModel):
         pd.DataFrame
             A DataFrame with `n_rows` rows and columns corresponding to the model's fields.
         """
-
         # Create a NumPy array for the data
         data_array = np.empty((n_rows, len(cls.model_fields)), dtype=object)
 
