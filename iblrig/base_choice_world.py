@@ -897,7 +897,7 @@ class TrainingChoiceWorldTrialData(ActiveChoiceWorldTrialData):
 
     training_phase: NonNegativeInt
     debias_trial: bool
-    signed_contrast: float | None = None
+    signed_contrast: float
 
 
 class TrainingChoiceWorldSession(ActiveChoiceWorldSession):
@@ -997,30 +997,41 @@ class TrainingChoiceWorldSession(ActiveChoiceWorldSession):
         # update counters
         self.trial_num += 1
         self.var['training_phase_trial_counts'][self.training_phase] += 1
+
         # check if the subject graduates to a new training phase
         self.check_training_phase()
+
         # draw the next trial
         signed_contrast = choiceworld.draw_training_contrast(self.training_phase)
         position = self.task_params.STIM_POSITIONS[int(np.sign(signed_contrast) == 1)]
         contrast = np.abs(signed_contrast)
-        # debiasing: if the previous trial was incorrect and easy repeat the trial
+
+        # debiasing: if the previous trial was incorrect, not a no-go and easy
         if self.task_params.DEBIAS and self.trial_num >= 1 and self.training_phase < 5:
             last_contrast = self.trials_table.loc[self.trial_num - 1, 'contrast']
-            do_debias_trial = (self.trials_table.loc[self.trial_num - 1, 'trial_correct'] != 1) and last_contrast >= 0.5
+            do_debias_trial = (
+                (self.trials_table.loc[self.trial_num - 1, 'trial_correct'] != 1)
+                and (self.trials_table.loc[self.trial_num - 1, 'response_side'] != 0)
+                and last_contrast >= 0.5
+            )
             self.trials_table.at[self.trial_num, 'debias_trial'] = do_debias_trial
             if do_debias_trial:
-                iresponse = np.logical_and(
-                    ~self.trials_table['response_side'].isna(), self.trials_table['response_side'] != 0
-                )  # trials that had a response
+                # indices of trials that had a response
+                iresponse = np.logical_and(self.trials_table['response_side'].notna(), self.trials_table['response_side'] != 0)
+                iresponse = iresponse.index[iresponse]
+
                 # takes the average of right responses over last 10 response trials
-                average_right = np.mean(self.trials_table['response_side'][iresponse[-np.maximum(10, iresponse.size) :]] == 1)
-                # the next probability of next stimulus being on the left is a draw from a normal distribution
-                # centered on average right with sigma 0.5. If it is less than 0.5 the next stimulus will be on the left
+                average_right = (self.trials_table['response_side'][iresponse[-np.minimum(10, iresponse.size) :]] == 1).mean()
+
+                # the probability of the next stimulus being on the left is a draw from a normal distribution centered
+                # on the average right with sigma 0.5 - if it is less than 0.5 the next stimulus will be on the left.
                 position = self.task_params.STIM_POSITIONS[int(np.random.normal(average_right, 0.5) >= 0.5)]
+
                 # contrast is the last contrast
                 contrast = last_contrast
         else:
             self.trials_table.at[self.trial_num, 'debias_trial'] = False
+
         # save and send trial info to bonsai
         self.draw_next_trial_info(pleft=self.task_params.PROBABILITY_LEFT, position=position, contrast=contrast)
         self.trials_table.at[self.trial_num, 'training_phase'] = self.training_phase
