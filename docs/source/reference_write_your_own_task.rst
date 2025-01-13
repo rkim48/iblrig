@@ -143,7 +143,7 @@ For instance, if your package is structured as follows:
    ├── task_parameters.yaml
    └── task.py
 
-You need to include the following configuration in your ``pyproject.toml`` file:
+include the following configuration in your ``pyproject.toml`` file:
 
 .. code-block:: toml
 
@@ -155,7 +155,7 @@ You need to include the following configuration in your ``pyproject.toml`` file:
    [project.entry-points."iblrig.plugins"]
    task_example = "task:Session"
 
-In order for IBLRIG to recognize your plugin, the key of the entry point (in this case, ``task_example``) must start with the prefix ``task_``. The value should point to a subclass of `iblrig.BaseSession`, which is the base class for all tasks in IBLRIG.
+In order for IBLRIG to recognize your plugin, the key of the entry point (in this case, ``task_example``) must start with the prefix ``task_``. The value must point to a subclass of :class:`~iblrig.base_tasks.BaseSession`, which is the base class for all tasks in IBLRIG.
 
 Once you have created your package and installed it in the virtual environment of IBLRIG, your task should appear in the list of available tasks in the GUI.
 
