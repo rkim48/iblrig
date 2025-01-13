@@ -3,6 +3,7 @@ Changelog
 
 8.26.1
 ------
+* feature: allow for external tasks to be registered as plugins
 * changed: initial delay uses minutes instead of seconds
 
 8.26.0
