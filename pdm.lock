@@ -5,7 +5,7 @@
 groups = ["default", "ci", "dev", "doc", "project-extraction", "test", "typing"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:a1b27a816af51b42cb61db0d443313f9342bcfa91e22c49c5a24c25c93a35b95"
+content_hash = "sha256:59057f9b70b99e96008faf31b74cbc4695a0f1babdc3017ae7b8eb0f2ba2fe4e"
 
 [[metadata.targets]]
 requires_python = "==3.10.*"
@@ -1571,14 +1571,14 @@ files = [
 
 [[package]]
 name = "one-api"
-version = "2.11.2"
-requires_python = ">=3.7"
+version = "3.0b0"
+requires_python = ">=3.10"
 summary = "Open Neurophysiology Environment"
 groups = ["default"]
 dependencies = [
     "boto3",
     "flake8>=3.7.8",
-    "iblutil>=1.13.0",
+    "iblutil>=1.14.0",
     "numpy>=1.18",
     "packaging",
     "pandas>=1.5.0",
@@ -1587,8 +1587,8 @@ dependencies = [
     "tqdm>=4.32.1",
 ]
 files = [
-    {file = "ONE_api-2.11.2-py3-none-any.whl", hash = "sha256:4eddf5b25f2c415e3ea64daabde2c2715f1b7c92950d95e2b6bb934319fff758"},
-    {file = "one_api-2.11.2.tar.gz", hash = "sha256:7c5deb1a502eb75e7dd6f5781fa6a2d5e18d46ed24305fd3e0ad0b8d6d49c792"},
+    {file = "ONE_api-3.0b0-py3-none-any.whl", hash = "sha256:e4886cf7e04fc42e315779c7e952e3e45f3cbbba189fc7a5e6f2a2e60454e437"},
+    {file = "one_api-3.0b0.tar.gz", hash = "sha256:5abec43c226973f9923eed67add26e2b47c53032be3e886d86c2c250b93bebbb"},
 ]
 
 [[package]]
