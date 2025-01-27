@@ -902,7 +902,7 @@ class TrainingChoiceWorldTrialData(ActiveChoiceWorldTrialData):
 
     training_phase: NonNegativeInt
     debias_trial: bool
-    signed_contrast: float
+    signed_contrast: float | None
 
 
 class TrainingChoiceWorldSession(ActiveChoiceWorldSession):
