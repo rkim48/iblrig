@@ -971,7 +971,8 @@ class TrainingChoiceWorldSession(ActiveChoiceWorldSession):
 
     def compute_performance(self):
         """Aggregate the trials table to compute the performance of the mouse on each contrast."""
-        self.trials_table['signed_contrast'] = self.trials_table.contrast * np.sign(self.trials_table.position)
+        idx = self.trials_table.position.notna()
+        self.trials_table.signed_contrast[idx] = self.trials_table.contrast[idx] * np.sign(self.trials_table.position[idx])
         performance = self.trials_table.groupby(['signed_contrast']).agg(
             last_50_perf=pd.NamedAgg(column='trial_correct', aggfunc=lambda x: np.sum(x[np.maximum(-50, -x.size) :]) / 50),
             ntrials=pd.NamedAgg(column='trial_correct', aggfunc='count'),
