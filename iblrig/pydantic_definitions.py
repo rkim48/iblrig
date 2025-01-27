@@ -3,7 +3,6 @@ from datetime import date
 from pathlib import Path
 from typing import Annotated, Literal
 
-import numpy as np
 import pandas as pd
 from annotated_types import Ge, Le
 from pydantic import (
@@ -243,35 +242,21 @@ class TrialDataModel(BaseModel):
         pd.DataFrame
             A DataFrame with `n_rows` rows and columns corresponding to the model's fields.
         """
-        # Create a NumPy array for the data
-        data_array = np.empty((n_rows, len(cls.model_fields)), dtype=object)
+        data = {}
+        for field, field_info in cls.model_fields.items():
+            default_value = field_info.default if field_info.default is not PydanticUndefined else pd.NA
+            data[field] = [default_value] * n_rows
+        return pd.DataFrame(data)
 
-        # Fill default values
-        for i, (field, field_info) in enumerate(cls.model_fields.items()):
-            if (default_value := field_info.default) is not PydanticUndefined:
-                data_array[:, i] = default_value
-
-        # Map model's dtypes to pandas nullable types
-        dtypes = {name: field.annotation for name, field in cls.model_fields.items()}
-        dtype_mapping = {
-            int: pd.Int64Dtype(),
-            float: pd.Float64Dtype(),
-            bool: pd.BooleanDtype(),
-            str: pd.StringDtype(),
-        }
-        nullable_dtypes = {name: dtype_mapping.get(dtype, object) for name, dtype in dtypes.items()}
-
-        # Create empty DataFrame with specified dtypes
-        df = pd.DataFrame(data_array, columns=cls.model_fields.keys()).astype(nullable_dtypes)
-
+        # # Create a NumPy array for the data
+        # data_array = np.empty((n_rows, len(cls.model_fields)), dtype=object)
         #
-        # data = {}
-        # for field, field_info in cls.model_fields.items():
-        #     default_value = field_info.default if field_info.default is not PydanticUndefined else pd.NA
-        #     data[field] = [default_value] * n_rows
-        # df = pd.DataFrame(data)
+        # # Fill default values
+        # for i, (field, field_info) in enumerate(cls.model_fields.items()):
+        #     if (default_value := field_info.default) is not PydanticUndefined:
+        #         data_array[:, i] = default_value
         #
-        # # map model's dtypes to pandas nullable types
+        # # Map model's dtypes to pandas nullable types
         # dtypes = {name: field.annotation for name, field in cls.model_fields.items()}
         # dtype_mapping = {
         #     int: pd.Int64Dtype(),
@@ -279,7 +264,9 @@ class TrialDataModel(BaseModel):
         #     bool: pd.BooleanDtype(),
         #     str: pd.StringDtype(),
         # }
-        # nullable_dtypes = {key:dtype_mapping.get(dtype, object) for key,dtype in dtypes.items()}
-        # df = df.astype(nullable_dtypes)
-
-        return df
+        # nullable_dtypes = {name: dtype_mapping.get(dtype, object) for name, dtype in dtypes.items()}
+        #
+        # # Create empty DataFrame with specified dtypes
+        # df = pd.DataFrame(data_array, columns=cls.model_fields.keys()).astype(nullable_dtypes)
+        #
+        # return df
