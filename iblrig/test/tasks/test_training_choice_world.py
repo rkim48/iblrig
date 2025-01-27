@@ -49,9 +49,9 @@ class TestTrainingPhaseChoiceWorld(BaseTestCases.CommonTestInstantiateTask):
                 contrasts = (
                     trials_table.groupby(['contrast']).agg(count=pd.NamedAgg(column='contrast', aggfunc='count')).reset_index()
                 )
-                np.testing.assert_equal(trials_table['stim_probability_left'].values, 0.5)
+                np.testing.assert_equal(trials_table['stim_probability_left'].to_numpy(), 0.5)
                 np.testing.assert_equal(np.unique(trials_table['reward_amount'].values), np.array([0, adaptive_reward]))
-                np.testing.assert_equal(trials_table['training_phase'].values, training_phase)
+                np.testing.assert_equal(trials_table['training_phase'].to_numpy(), training_phase)
                 debias = True
                 probas = 1
                 match training_phase:
@@ -77,9 +77,20 @@ class TestTrainingPhaseChoiceWorld(BaseTestCases.CommonTestInstantiateTask):
                 normalized_counts = normalized_counts / (nt / contrast_set.size)
                 np.testing.assert_array_less(normalized_counts, 0.33)
                 if debias:
-                    assert trials_table.debias_trial.astype(int).sum() > 20
+                    for index, row in trials_table.iterrows():
+                        # if the previous trial was incorrect, not a no-go and easy
+                        assert row.debias_trial == (
+                            (index > 0)
+                            and (trials_table.loc[index - 1, 'trial_correct'] != 1)
+                            and (trials_table.loc[index - 1, 'response_side'] != 0)
+                            and (trials_table.loc[index - 1, 'contrast'] >= 0.5)
+                        )
+                        if row.debias_trial:
+                            assert row.position in task.task_params['STIM_POSITIONS']
+                            assert trials_table.loc[index - 1, 'contrast'] == row.contrast
+                    assert trials_table.debias_trial.sum() > 0
                 else:
-                    assert trials_table.debias_trial.astype(int).sum() == 0
+                    assert trials_table.debias_trial.sum() == 0
 
 
 class TestInstantiationTraining(BaseTestCases.CommonTestInstantiateTask):
