@@ -1,6 +1,15 @@
 Changelog
 =========
 
+8.27.0
+------
+* feature: allow for external tasks to be registered as plugins
+* changed: initial delay uses minutes instead of seconds
+* fixed: debiasing logic used incorrect range during averaging
+* fixed: broken progression from training stages 0 to 1 and 1 to 2
+
+-------------------------------
+
 8.26.0
 ------
 * feature: added GUI field for session narrative
@@ -8,11 +17,15 @@ Changelog
 * changed: documentation and tests
 * removed: detailed version strings for IBLRIG (+dirty etc)
 
+-------------------------------
+
 8.25.0
 ------
 * feature: fiber photometry loader
 * feature: dataframe converter for Bpod session data 
 * removed: remaining tkinter dialogs
+
+-------------------------------
 
 8.24.7
 ------
