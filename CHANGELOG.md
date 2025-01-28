@@ -5,6 +5,8 @@ Changelog
 ------
 * feature: allow for external tasks to be registered as plugins
 * changed: initial delay uses minutes instead of seconds
+* fixed: debiasing logic used incorrect range during averaging
+* fixed: broken progression from training stages 0 to 1 and 1 to 2
 
 -------------------------------
 
