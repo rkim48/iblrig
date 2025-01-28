@@ -979,7 +979,7 @@ class TrainingChoiceWorldSession(ActiveChoiceWorldSession):
         )
         return performance
 
-    def check_training_phase(self):
+    def check_training_phase(self) -> bool:
         """Check if the mouse is ready to move to the next training phase."""
         move_on = False
         if self.training_phase == 0:  # each of the -1, -.5, .5, 1 contrast should be above 80% perf to switch
@@ -998,6 +998,7 @@ class TrainingChoiceWorldSession(ActiveChoiceWorldSession):
         if move_on:
             self.training_phase = np.minimum(5, self.training_phase + 1)
             log.warning(f'Moving on to training phase {self.training_phase}, {self.trial_num}')
+        return move_on
 
     def next_trial(self):
         # update counters
