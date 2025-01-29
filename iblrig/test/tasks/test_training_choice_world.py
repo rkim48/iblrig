@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from iblrig import choiceworld
 from iblrig.test.base import BaseTestCases
 from iblrig.test.tasks.test_biased_choice_world_family import get_fixtures
 from iblrig_tasks._iblrig_tasks_trainingChoiceWorld.task import Session as TrainingChoiceWorldSession
@@ -109,7 +110,7 @@ class TestInstantiationTraining(BaseTestCases.CommonTestInstantiateTask):
         for i_trial in range(n_trials):
             original_phase = task.training_phase
             task.next_trial()
-            performance = task.compute_performance()
+            performance = choiceworld.compute_performance(task.trials_table)
             did_progress = task.training_phase > original_phase
             assert task.trial_num == i_trial
             # pc = task.psychometric_curve()

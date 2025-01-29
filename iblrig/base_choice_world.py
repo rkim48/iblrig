@@ -968,20 +968,16 @@ class TrainingChoiceWorldSession(ActiveChoiceWorldSession):
         )
         return training_info['training_phase'], training_info['adaptive_reward'], training_info['adaptive_gain']
 
-    def compute_performance(self):
-        """Aggregate the trials table to compute the performance of the mouse on each contrast."""
-        return choiceworld.compute_performance(self.trials_table)
-
     def check_training_phase(self) -> bool:
         """Check if the mouse is ready to move to the next training phase."""
         move_on = False
         if self.training_phase == 0:  # each of the -1, -.5, .5, 1 contrast should be above 80% perf to switch
-            performance = self.compute_performance()
+            performance = choiceworld.compute_performance(self.trials_table)
             passing = performance[np.abs(performance.index) >= 0.5]['last_50_perf']
             if np.all(passing > 0.8) and passing.size == 4:
                 move_on = True
         elif self.training_phase == 1:  # each of the -.25, .25 should be above 80% perf to switch
-            performance = self.compute_performance()
+            performance = choiceworld.compute_performance(self.trials_table)
             passing = performance[np.abs(performance.index) == 0.25]['last_50_perf']
             if np.all(passing > 0.8) and passing.size == 2:
                 move_on = True
