@@ -4,6 +4,7 @@ Changelog
 8.27.1
 ------
 * fixed: resolved warning about chained assignment in TrainingChoiceWorld.compute_performance()
+* changed: make performance calculation for training phase part of choiceworld module
 
 8.27.0
 ------
