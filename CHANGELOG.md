@@ -1,6 +1,10 @@
 Changelog
 =========
 
+8.27.2
+------
+* fixed: error when using task arguments of type bool
+
 8.27.1
 ------
 * fixed: resolved warning about chained assignment in TrainingChoiceWorld.compute_performance()
