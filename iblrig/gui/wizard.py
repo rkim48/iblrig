@@ -1040,8 +1040,11 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
                 for key, value in self.task_arguments.items():
                     if isinstance(value, list):
                         cmd.extend([key] + value)
-                    elif isinstance(value, bool) and value is True:
-                        cmd.append(key)
+                    elif isinstance(value, bool):
+                        if value is True:
+                            cmd.append(key)
+                        else:
+                            pass
                     else:
                         cmd.extend([key, value])
                 cmd.extend(['--weight', f'{weight}'])
