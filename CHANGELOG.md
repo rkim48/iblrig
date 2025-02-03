@@ -1,7 +1,7 @@
 Changelog
 =========
 
-8.27.1
+8.27.2
 ------
 * fixed: error when using task arguments of type bool
 
