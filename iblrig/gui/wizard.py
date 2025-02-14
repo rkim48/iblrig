@@ -256,7 +256,7 @@ class RigWizardModel:
 
         # get subjects from Alyx: this is the set of subjects that are alive and in the lab defined in settings
         # stock subjects are excluded, unless the user is stock manager
-        kwargs = {'alive': True, 'lab': self.iblrig_settings['ALYX_LAB'], 'no_cache':True}
+        kwargs = {'alive': True, 'lab': self.iblrig_settings['ALYX_LAB'], 'no_cache': True}
         is_stock_manager = any(self.alyx.rest('subjects', 'list', responsible_user=self.user, stock=True, limit=1, **kwargs))
         if not is_stock_manager:
             kwargs['stock'] = False

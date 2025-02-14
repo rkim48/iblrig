@@ -5,6 +5,7 @@ Changelog
 ------
 * changed: reset camera prior to starting task (to avoid the "camera inconsistency" error)
 * changed: include stock subjects if user is stock manager
+* changed: skip validation of Ambient Module if device_bpod.USE_AMBIENT_MODULE is false
 
 8.27.2
 ------
