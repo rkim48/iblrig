@@ -1,6 +1,10 @@
 Changelog
 =========
 
+8.27.3
+------
+* changed: reset camera prior to starting task (to avoid the "camera inconsistency" error) 
+
 8.27.2
 ------
 * fixed: error when using task arguments of type bool
