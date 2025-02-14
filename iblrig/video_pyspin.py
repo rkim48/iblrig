@@ -51,7 +51,7 @@ def reset_all_cameras():
                 camera.DeInit()
 
         # Wait for all cameras to come back online
-        log.info(f'Waiting for {"camera" if len(cameras) == 1 else "cameras"} to come back online ...')
+        log.info(f'Waiting for {"camera" if len(cameras) == 1 else "cameras"} to come back online (~10 s) ...')
         all_cameras_online = False
         while not all_cameras_online:
             all_cameras_online = True
