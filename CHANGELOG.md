@@ -3,7 +3,8 @@ Changelog
 
 8.27.3
 ------
-* changed: reset camera prior to starting task (to avoid the "camera inconsistency" error) 
+* changed: reset camera prior to starting task (to avoid the "camera inconsistency" error)
+* changed: include stock subjects if user is stock manager
 
 8.27.2
 ------
