@@ -33,6 +33,31 @@ class Cameras:
         return self._instance
 
 
+def acquisition_ok() -> bool:
+    success = True
+    with Cameras() as cameras:
+        for camera in cameras:
+            log.debug(f'Testing image acquisition with camera #{camera.DeviceID()}')
+            camera.BeginAcquisition()
+            try:
+                image = camera.GetNextImage(1000)
+                if image.IsValid() and image.GetImageStatus() == PySpin.SPINNAKER_IMAGE_STATUS_NO_ERROR:
+                    log.info(f'Acquisition test for camera #{camera.DeviceID()} was successful.')
+                else:
+                    log.error(f'Inconsistency detected during acquisition test for camera #{camera.DeviceID()}.')
+                    success = False
+            except PySpin.SpinnakerException as e:
+                log.error(f'Acquisition test for camera #{camera.DeviceID()} failed with an exception: {e.message}')
+                success = False
+            else:
+                if image.IsValid():
+                    image.Release()
+            finally:
+                camera.EndAcquisition()
+        del camera
+    return success
+
+
 def reset_all_cameras():
     with Cameras(init_cameras=False) as cameras:
         if len(cameras) == 0:

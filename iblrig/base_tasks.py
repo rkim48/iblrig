@@ -806,12 +806,13 @@ class BonsaiRecordingMixin(BaseSession):
         if (workflow_file := self._camera_mixin_bonsai_get_workflow_file(configuration, 'setup')) is None:
             return
 
-        # reset cameras
+        # test acquisition and reset cameras if needed
         # enable trigger of cameras (so Bonsai can disable it again ... sigh)
         if PYSPIN_AVAILABLE:
             from iblrig import video_pyspin
 
-            video_pyspin.reset_all_cameras()
+            if not video_pyspin.acquisition_ok():
+                video_pyspin.reset_all_cameras()
             video_pyspin.enable_camera_trigger(True)
 
         call_bonsai(workflow_file, wait=True)  # TODO Parameterize using configuration cameras
