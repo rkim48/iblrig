@@ -370,6 +370,7 @@ def flush():
 def remove_bonsai_layouts():
     """Delete all BONSAI .layout files - if they are backed up with a .layout_template file."""
     from iblrig.constants import BASE_PATH
+
     layout_files = [x for x in BASE_PATH.glob('**/*.bonsai.layout') if x.with_suffix('.layout_template').exists()]
     if len(layout_files) == 0:
         print('No layout files found.')
@@ -377,7 +378,7 @@ def remove_bonsai_layouts():
     print('The following files will be deleted:')
     for f in layout_files:
         print(f'- {f.name}')
-    if input("\nContinue? [Y/n] ").lower() in ('y', ''):
+    if input('\nContinue? [Y/n] ').lower() in ('y', ''):
         for f in layout_files:
             f.unlink()
         print(f'{len(layout_files)} file{"s" if len(layout_files) > 1 else ""} deleted.')
