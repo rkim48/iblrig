@@ -7,9 +7,37 @@ log = logging.getLogger(__name__)
 
 
 class Cameras:
+    """A class to manage camera instances using the PySpin library.
+
+    This class provides a context manager for initializing and deinitializing
+    cameras. It ensures that cameras are properly initialized when entering
+    the context and deinitialized when exiting.
+
+    Attributes
+    ----------
+    _instance : PySpin.System
+        The singleton instance of the PySpin system.
+    _cameras : PySpin.CameraList
+        A list of cameras available in the system.
+    _init_cameras : bool
+        A flag indicating whether to initialize cameras upon instantiation.
+
+    Parameters
+    ----------
+    init_cameras : bool, optional
+        If True, initializes the cameras upon creation of the instance (default is True).
+    """
+
     _instance = None
 
     def __init__(self, init_cameras: bool = True):
+        """Initializes the Cameras instance.
+
+        Parameters
+        ----------
+        init_cameras : bool, optional
+            If True, initializes the cameras upon creation of the instance (default is True).
+        """
         self._instance = PySpin.System.GetInstance()
         self._cameras = self._instance.GetCameras()
         self._init_cameras = init_cameras
@@ -18,22 +46,50 @@ class Cameras:
                 camera.Init()
 
     def __enter__(self) -> PySpin.CameraList:
+        """Enters the runtime context related to this object.
+
+        Returns
+        -------
+        PySpin.CameraList
+            The list of initialized cameras.
+        """
         return self._cameras
 
     def __exit__(self, *_):
+        """Exits the runtime context related to this object.
+
+        Deinitializes the cameras if they were initialized and releases the system instance.
+        """
         if self._init_cameras:
             for camera in self._cameras:
                 camera.DeInit()
-            del camera
+            del camera  # Clean up the camera reference
         self._cameras.Clear()
         self._instance.ReleaseInstance()
 
     @property
     def instance(self):
+        """Gets the singleton instance of the PySpin system.
+
+        Returns
+        -------
+        PySpin.System
+            The singleton instance of the PySpin system.
+        """
         return self._instance
 
 
 def acquisition_ok() -> bool:
+    """Test image acquisition for all available cameras.
+
+    This function attempts to acquire an image from each camera and checks if the acquisition
+    was successful. It logs the results of the acquisition test for each camera.
+
+    Returns
+    -------
+    bool
+        True if all cameras successfully acquired an image, False otherwise.
+    """
     success = True
     with Cameras() as cameras:
         for camera in cameras:
@@ -59,6 +115,11 @@ def acquisition_ok() -> bool:
 
 
 def reset_all_cameras():
+    """Reset all available cameras and wait for them to come back online.
+
+    This function initializes each camera, attempts to reset it, and then deinitializes it.
+    After resetting, it waits for all cameras to come back online, logging the status of each camera.
+    """
     with Cameras(init_cameras=False) as cameras:
         if len(cameras) == 0:
             return
@@ -94,6 +155,19 @@ def reset_all_cameras():
 
 
 def enable_camera_trigger(enable: bool, camera: PySpin.CameraPtr | None = None):
+    """Enable or disable the trigger for a specified camera or all cameras.
+
+    This function allows you to enable or disable the trigger mode for a given camera.
+    If no camera is specified, it will enable or disable the trigger mode for all available cameras.
+
+    Parameters
+    ----------
+    enable : bool
+        A flag indicating whether to enable (True) or disable (False) the camera trigger.
+    camera : PySpin.CameraPtr | None, optional
+        A pointer to a specific camera instance. If None, the function will apply the trigger setting
+        to all cameras managed by the Cameras context manager (default is None).
+    """
     if camera is None:
         with Cameras() as cameras:
             for cam in cameras:
