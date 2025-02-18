@@ -52,23 +52,25 @@ project-extraction = [
 ]
 
 [project.scripts]
-view_session        = "iblrig.commands:view_session"
-transfer_data       = "iblrig.commands:transfer_data_cli"
-transfer_video_data = "iblrig.commands:transfer_video_data_cli"
-transfer_ephys_data = "iblrig.commands:transfer_ephys_data_cli"
-flush               = "iblrig.commands:flush"
-remove-old-sessions = "iblrig.commands:remove_local_sessions"
-iblrig              = "iblrig.gui.wizard:main"
-upgrade_iblrig      = "iblrig.upgrade_iblrig:upgrade"
-install_spinnaker   = "iblrig.video:install_spinnaker"
-install_pyspin      = "iblrig.video:install_pyspin"
-start_video_session = "iblrig.video:prepare_video_session_cmd"
-start_ephys_session = "iblrig.ephys:prepare_ephys_session_cmd"
+view_session            = "iblrig.commands:view_session"
+transfer_data           = "iblrig.commands:transfer_data_cli"
+transfer_video_data     = "iblrig.commands:transfer_video_data_cli"
+transfer_ephys_data     = "iblrig.commands:transfer_ephys_data_cli"
+flush                   = "iblrig.commands:flush"
+remove-old-sessions     = "iblrig.commands:remove_local_sessions"
+remove_bonsai_layouts   = "iblrig.commands:remove_bonsai_layouts"
+iblrig                  = "iblrig.gui.wizard:main"
+upgrade_iblrig          = "iblrig.upgrade_iblrig:upgrade"
+install_spinnaker       = "iblrig.video:install_spinnaker"
+install_pyspin          = "iblrig.video:install_pyspin"
+start_video_session     = "iblrig.video:prepare_video_session_cmd"
+start_ephys_session     = "iblrig.ephys:prepare_ephys_session_cmd"
 start_neurophotometrics = 'iblrig.neurophotometrics:start_workflow_cmd'
-start_photometry_task = 'iblrig.neurophotometrics:start_photometry_task_cmd'
-convert_uis         = "iblrig.gui.tools:convert_uis"
-validate_iblrig     = "iblrig.hardware_validation:run_all_validators_cli"
-validate_video      = "iblrig.video:validate_video_cmd"
+start_photometry_task   = 'iblrig.neurophotometrics:start_photometry_task_cmd'
+convert_uis             = "iblrig.gui.tools:convert_uis"
+validate_iblrig         = "iblrig.hardware_validation:run_all_validators_cli"
+validate_video          = "iblrig.video:validate_video_cmd"
+
 
 [tool.pdm.version]
 source = "file"
