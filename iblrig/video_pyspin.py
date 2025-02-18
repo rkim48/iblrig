@@ -12,20 +12,6 @@ class Cameras:
     This class provides a context manager for initializing and deinitializing
     cameras. It ensures that cameras are properly initialized when entering
     the context and deinitialized when exiting.
-
-    Attributes
-    ----------
-    _instance : PySpin.System
-        The singleton instance of the PySpin system.
-    _cameras : PySpin.CameraList
-        A list of cameras available in the system.
-    _init_cameras : bool
-        A flag indicating whether to initialize cameras upon instantiation.
-
-    Parameters
-    ----------
-    init_cameras : bool, optional
-        If True, initializes the cameras upon creation of the instance (default is True).
     """
 
     _instance = None
