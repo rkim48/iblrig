@@ -1,6 +1,13 @@
 Changelog
 =========
 
+8.27.3
+------
+* changed: reset camera(s) prior to starting task when inconsistencies have been detected
+* changed: include stock subjects if user is stock manager
+* changed: skip validation of Ambient Module if device_bpod.USE_AMBIENT_MODULE is false
+* added: `remove_bonsai_layouts` command for troubleshooting BONSAI GUIs not appearing 
+
 8.27.2
 ------
 * fixed: error when using task arguments of type bool
