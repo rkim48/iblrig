@@ -1457,3 +1457,13 @@ class SpontaneousSession(BaseSession):
             if self.paths.SESSION_FOLDER.joinpath('.stop').exists():
                 self.paths.SESSION_FOLDER.joinpath('.stop').unlink()
                 break
+
+
+class SpontaneousBpodSession(SpontaneousSession, BpodMixin):
+    """
+    A Spontaneous task doesn't have trials, it just runs until the user stops it.
+
+    It is used to get extraction structure for data streams
+    """
+    def start_hardware(self):
+        self.start_mixin_bpod()
