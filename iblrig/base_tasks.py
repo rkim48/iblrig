@@ -1461,10 +1461,10 @@ class SpontaneousSession(BaseSession):
 
 class SpontaneousBpodSession(SpontaneousSession, BpodMixin):
     """
-    A Spontaneous task doesn't have trials, it just runs until the user stops it.
+    Like SpontaneousSession but with the BpodMixin added in.
 
-    It is used to get extraction structure for data streams
+    This ensures that the Bpod spacers will be generated when starting the task.
     """
 
-    def start_hardware(self):
+    def start_hardware(self) -> None:
         self.start_mixin_bpod()
