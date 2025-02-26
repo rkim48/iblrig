@@ -1457,3 +1457,14 @@ class SpontaneousSession(BaseSession):
             if self.paths.SESSION_FOLDER.joinpath('.stop').exists():
                 self.paths.SESSION_FOLDER.joinpath('.stop').unlink()
                 break
+
+
+class SpontaneousBpodSession(SpontaneousSession, BpodMixin):
+    """
+    Like SpontaneousSession but with the BpodMixin added in.
+
+    This ensures that the Bpod spacers will be generated when starting the task.
+    """
+
+    def start_hardware(self) -> None:
+        self.start_mixin_bpod()
