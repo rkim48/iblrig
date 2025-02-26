@@ -1465,5 +1465,6 @@ class SpontaneousBpodSession(SpontaneousSession, BpodMixin):
 
     It is used to get extraction structure for data streams
     """
+
     def start_hardware(self):
         self.start_mixin_bpod()
