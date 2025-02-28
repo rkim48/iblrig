@@ -814,6 +814,10 @@ class BonsaiRecordingMixin(BaseSession):
             if not video_pyspin.acquisition_ok():
                 video_pyspin.reset_all_cameras()
             video_pyspin.enable_camera_trigger(True)
+            # with video_pyspin.Cameras() as cameras:
+            #     video_pyspin.enable_camera_trigger(True, cameras)
+            #     video_pyspin.set_line_mode(line=2, mode='Output', camera=cameras)
+            #     video_pyspin.set_line_mode(line=3, mode='Input', camera=cameras)
 
         call_bonsai(workflow_file, wait=True)  # TODO Parameterize using configuration cameras
         log.info('Bonsai cameras setup module loaded: OK')
