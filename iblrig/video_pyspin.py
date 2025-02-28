@@ -36,8 +36,8 @@ class Cameras:
         self._cameras = self._instance.GetCameras()
         self._init_cameras = init_cameras
         if init_cameras:
-            for camera in self._cameras:
-                camera.Init()
+            for i in range(len(self._cameras)):
+                self._cameras[i].Init()
 
     def __enter__(self) -> PySpin.CameraList:
         """Enters the runtime context related to this object.
@@ -55,9 +55,8 @@ class Cameras:
         Deinitializes the cameras if they were initialized and releases the system instance.
         """
         if self._init_cameras:
-            for camera in self._cameras:
-                camera.DeInit()
-            del camera  # Clean up the camera reference
+            for i in range(len(self._cameras)):
+                self._cameras[i].DeInit()
         self._cameras.Clear()
         self._instance.ReleaseInstance()
 
@@ -194,8 +193,7 @@ def acquisition_ok() -> bool:
                 if image.IsValid():
                     image.Release()
             finally:
-                camera.EndAcquisition()
-        del camera
+                cameras[i].EndAcquisition()
     return success
 
 
@@ -210,25 +208,25 @@ def reset_all_cameras():
             return
 
         # Iterate through each camera and reset
-        for camera in cameras:
-            camera.Init()
+        for i in range(len(cameras)):
+            cameras[i].Init()
             try:
-                camera.DeviceReset()
+                cameras[i].DeviceReset()
             except PySpin.SpinnakerException as e:
                 camera_log(logging.ERROR, cameras[i], f'Error resetting camera: {e}')
             else:
                 camera_log(logging.INFO, cameras[i], 'Resetting camera')
             finally:
-                camera.DeInit()
+                cameras[i].DeInit()
 
         # Wait for all cameras to come back online
         logger.info(f'Waiting for {"camera" if len(cameras) == 1 else "cameras"} to come back online (~10 s) ...')
         all_cameras_online = False
         while not all_cameras_online:
             all_cameras_online = True
-            for camera in cameras:
+            for i in range(len(cameras)):
                 try:
-                    camera.Init()
+                    cameras[i].Init()
                 except PySpin.SpinnakerException:
                     all_cameras_online = False
                 else:
@@ -236,7 +234,6 @@ def reset_all_cameras():
                     cameras[i].DeInit()
             if not all_cameras_online:
                 time.sleep(0.2)
-        del camera
 
 
 @process_camera
