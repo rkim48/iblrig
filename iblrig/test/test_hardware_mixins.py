@@ -6,6 +6,7 @@ The start() methods of those mixins require the hardware to be connected.
 
 import unittest
 from unittest import mock
+from unittest.mock import patch
 
 from iblrig.base_choice_world import ChoiceWorldSession
 from iblrig.base_tasks import (
@@ -127,13 +128,35 @@ class TestOtherMixins(BaseTestHardwareMixins):
         with self.assertRaises(ValueError):
             Frame2TTLMixin.start_mixin_frame2ttl(session)
 
-    def test_sound_card_mixin(self):
+    def test_sound_card_mixin(self, mock_bpod, mock_state_machine):
         """
         Instantiates a bare session with the sound card mixin
         """
         session = self.session
         SoundMixin.init_mixin_sound(session)
         assert session.sound.GO_TONE is not None
+
+    @patch('iblrig.hardware.Bpod', autospec=True)
+    def test_sound_card_and_bpod_mixin(self, mock_bpod):
+        session = mixin_factory(SoundMixin, BpodMixin)
+        session.init_mixin_sound()
+        session.init_mixin_bpod()
+        session.bpod.actions['play_tone'] = ('MockSoftCode', 23)
+        session.bpod.actions['play_noise'] = ('MockSoftCode', 42)
+
+        with patch('iblrig.base_tasks.StateMachine', autospec=True) as mock_state_machine:
+            session.sound_play_tone()
+            mock_sma = mock_state_machine.return_value
+            kwargs = mock_sma.add_state.call_args.kwargs
+            assert len(kwargs['output_actions']) == 1
+            assert session.bpod.actions.play_tone in kwargs['output_actions']
+
+        with patch('iblrig.base_tasks.StateMachine', autospec=True) as mock_state_machine:
+            session.sound_play_noise()
+            mock_sma = mock_state_machine.return_value
+            kwargs = mock_sma.add_state.call_args.kwargs
+            assert len(kwargs['output_actions']) == 1
+            assert session.bpod.actions.play_noise in kwargs['output_actions']
 
     def test_valve_mixin(self):
         session = self.session

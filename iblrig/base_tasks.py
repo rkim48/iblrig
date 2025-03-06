@@ -1149,7 +1149,7 @@ class SoundMixin(BaseSession, HasBpod):
         Play the noise sound for the error feedback using bpod state machine.
         :return: bpod current trial export
         """
-        return self._sound_play(state_name=state_name, output_actions=[self.bpod.actions.play_tone], state_timer=state_timer)
+        return self._sound_play(state_name=state_name, output_actions=[self.bpod.actions.play_noise], state_timer=state_timer)
 
     def sound_play_tone(self, state_timer=0.102, state_name='play_tone'):
         """
@@ -1169,7 +1169,7 @@ class SoundMixin(BaseSession, HasBpod):
         sma.add_state(
             state_name=state_name,
             state_timer=state_timer,
-            output_actions=[self.bpod.actions.play_tone],
+            output_actions=output_actions,
             state_change_conditions={'BNC2Low': 'exit', 'Tup': 'exit'},
         )
         self.bpod.send_state_machine(sma)
