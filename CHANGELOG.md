@@ -1,6 +1,10 @@
 Changelog
 =========
 
+8.27.4
+------
+* fixed: passive choice world did not play noise stimulus
+
 8.27.3
 ------
 * changed: reset camera(s) prior to starting task when inconsistencies have been detected
