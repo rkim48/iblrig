@@ -8,6 +8,10 @@ import unittest
 from unittest import mock
 from unittest.mock import patch
 
+import numpy as np
+from scipy import stats
+from scipy.fft import fft, fftfreq
+
 from iblrig.base_choice_world import ChoiceWorldSession
 from iblrig.base_tasks import (
     BaseSession,
@@ -134,29 +138,50 @@ class TestOtherMixins(BaseTestHardwareMixins):
         """
         session = self.session
         SoundMixin.init_mixin_sound(session)
-        assert session.sound.GO_TONE is not None
+
+        go_tone = session.sound.get('GO_TONE')
+        white_noise = session.sound.get('WHITE_NOISE')
+        assert not np.array_equal(go_tone, white_noise)
+
+        # test go tone
+        x = go_tone[:, 0]
+        n = len(x)
+        fs = session.sound['samplerate']
+        assert np.isclose(n / fs, 0.11)
+        yf = np.abs(fft(x))  # magnitude of the FFT
+        xf = fftfreq(n, 1 / fs)  # frequency bins
+        idx_peak = np.argmax(yf[: n // 2])  # index of peak magnitude
+        assert np.isclose(xf[idx_peak], 5000)
+        assert yf[idx_peak] > 100000 * np.median(yf)
+
+        # test white noise
+        x = white_noise[:, 0]
+        n = len(x)
+        assert np.isclose(n / fs, 0.5)
+        observed, _ = np.histogram(white_noise[:, 0], bins=10)
+        expected = np.full_like(observed, fill_value=n / 10)
+        assert stats.chisquare(observed, expected)[1] > 0.05
 
     @patch('iblrig.hardware.Bpod', autospec=True)
-    def test_sound_card_and_bpod_mixin(self, mock_bpod):
+    @patch('iblrig.base_tasks.StateMachine', autospec=True)
+    def test_sound_card_and_bpod_mixin(self, mock_state_machine, mock_bpod):
         session = mixin_factory(SoundMixin, BpodMixin)
         session.init_mixin_sound()
         session.init_mixin_bpod()
         session.bpod.actions['play_tone'] = ('MockSoftCode', 23)
         session.bpod.actions['play_noise'] = ('MockSoftCode', 42)
 
-        with patch('iblrig.base_tasks.StateMachine', autospec=True) as mock_state_machine:
-            session.sound_play_tone()
-            mock_sma = mock_state_machine.return_value
-            kwargs = mock_sma.add_state.call_args.kwargs
-            assert len(kwargs['output_actions']) == 1
-            assert session.bpod.actions.play_tone in kwargs['output_actions']
+        session.sound_play_tone()
+        mock_sma = mock_state_machine.return_value
+        kwargs = mock_sma.add_state.call_args.kwargs
+        assert len(kwargs['output_actions']) == 1
+        assert session.bpod.actions.play_tone in kwargs['output_actions']
 
-        with patch('iblrig.base_tasks.StateMachine', autospec=True) as mock_state_machine:
-            session.sound_play_noise()
-            mock_sma = mock_state_machine.return_value
-            kwargs = mock_sma.add_state.call_args.kwargs
-            assert len(kwargs['output_actions']) == 1
-            assert session.bpod.actions.play_noise in kwargs['output_actions']
+        session.sound_play_noise()
+        mock_sma = mock_state_machine.return_value
+        kwargs = mock_sma.add_state.call_args.kwargs
+        assert len(kwargs['output_actions']) == 1
+        assert session.bpod.actions.play_noise in kwargs['output_actions']
 
     def test_valve_mixin(self):
         session = self.session
