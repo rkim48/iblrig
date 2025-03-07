@@ -128,7 +128,7 @@ class TestOtherMixins(BaseTestHardwareMixins):
         with self.assertRaises(ValueError):
             Frame2TTLMixin.start_mixin_frame2ttl(session)
 
-    def test_sound_card_mixin(self, mock_bpod, mock_state_machine):
+    def test_sound_card_mixin(self):
         """
         Instantiates a bare session with the sound card mixin
         """
