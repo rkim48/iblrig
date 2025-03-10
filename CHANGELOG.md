@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.27.4
+------
+* fixed: passive choice world did not play noise stimulus
+* changed: update to ONE-api>=3.0.0 and ibllib>=3.3.0
+
 8.27.3
 ------
 * changed: reset camera(s) prior to starting task when inconsistencies have been detected
