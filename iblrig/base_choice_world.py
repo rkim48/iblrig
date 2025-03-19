@@ -764,6 +764,7 @@ class ActiveChoiceWorldSession(ChoiceWorldSession):
         Update the trials table with information about the behaviour coming from the bpod.
 
         Constraints on the state machine data:
+
         - mandatory states: ['correct', 'error', 'no_go', 'reward']
         - optional states : ['omit_correct', 'omit_error', 'omit_no_go']
 
@@ -798,22 +799,24 @@ class ActiveChoiceWorldSession(ChoiceWorldSession):
                 assert n_outcomes == 1, f'{n_outcomes} outcomes detected for trial {self.trial_num}.\n{trial_states}'
             outcome = outcomes[0]
 
-            # record the trial's outcome in the trials_table
-            self.trials_table.at[self.trial_num, 'trial_correct'] = 'correct' in outcome
-            if 'correct' in outcome:
-                self.session_info.NTRIALS_CORRECT += 1
-                self.trials_table.at[self.trial_num, 'response_side'] = -np.sign(position)
-            elif 'error' in outcome:
-                self.trials_table.at[self.trial_num, 'response_side'] = np.sign(position)
-            elif 'no_go' in outcome:
-                self.trials_table.at[self.trial_num, 'response_side'] = 0
-            super().trial_completed(bpod_data)
-
         except AssertionError as e:
-            # log assertion errors, then raise
+            # write bpod_data to disk, log exception then raise
+            self.save_trial_data_to_json(bpod_data, validate=False)
             for line in re_split(r'\n', e.args[0]):
                 log.error(line)
             raise e
+
+        # record the trial's outcome in the trials_table
+        self.trials_table.at[self.trial_num, 'trial_correct'] = 'correct' in outcome
+        if 'correct' in outcome:
+            self.session_info.NTRIALS_CORRECT += 1
+            self.trials_table.at[self.trial_num, 'response_side'] = -np.sign(position)
+        elif 'error' in outcome:
+            self.trials_table.at[self.trial_num, 'response_side'] = np.sign(position)
+        elif 'no_go' in outcome:
+            self.trials_table.at[self.trial_num, 'response_side'] = 0
+
+        super().trial_completed(bpod_data)
 
 
 class BiasedChoiceWorldTrialData(ActiveChoiceWorldTrialData):

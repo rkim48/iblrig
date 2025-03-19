@@ -463,7 +463,7 @@ class BaseSession(ABC):
         return json_file  # PosixPath
 
     @final
-    def save_trial_data_to_json(self, bpod_data: dict):
+    def save_trial_data_to_json(self, bpod_data: dict, validate: bool = True):
         """Validate and save trial data.
 
         This method retrieve's the current trial's data from the trial_table and validates it using a Pydantic model
@@ -474,20 +474,23 @@ class BaseSession(ABC):
         ----------
         bpod_data : dict
             Trial data returned from pybpod.
+        validate : bool, optional
+            Validate trial's data using Pydantic model. Default: True.
         """
         # get trial's data as a dict
         trial_data = self.trials_table.iloc[self.trial_num].to_dict()
 
-        # warn about entries not covered by pydantic model
-        if trial_data.get('trial_num', 1) == 0:
-            for key in set(trial_data.keys()) - set(self.TrialDataModel.model_fields) - {'index'}:
-                log.warning(
-                    f'Key "{key}" in trial_data is missing from TrialDataModel - '
-                    f'its value ({trial_data[key]}) will not be validated.'
-                )
+        if validate:
+            # warn about entries not covered by pydantic model
+            if trial_data.get('trial_num', 1) == 0:
+                for key in set(trial_data.keys()) - set(self.TrialDataModel.model_fields) - {'index'}:
+                    log.warning(
+                        f'Key "{key}" in trial_data is missing from TrialDataModel - '
+                        f'its value ({trial_data[key]}) will not be validated.'
+                    )
 
-        # validate by passing through pydantic model
-        trial_data = self.TrialDataModel.model_validate(trial_data).model_dump()
+            # validate by passing through pydantic model
+            trial_data = self.TrialDataModel.model_validate(trial_data).model_dump()
 
         # add bpod_data as 'behavior_data'
         trial_data['behavior_data'] = bpod_data
@@ -495,6 +498,7 @@ class BaseSession(ABC):
         # write json data to file
         with open(self.paths['DATA_FILE_PATH'], 'a') as fp:
             fp.write(json.dumps(trial_data) + '\n')
+        log.debug(f'Trial data dumped to `{self.paths["DATA_FILE_PATH"].name}`')
 
     @property
     def one(self):
