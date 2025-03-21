@@ -1,9 +1,16 @@
 Changelog
 =========
 
+
 8.28.0
 ------
 * added: `_iblrig_tasks_spontaneousBpod` - a spontaneous task that includes Bpod spacers
+
+-------------------------------
+
+8.27.5
+------
+* fixed: issues in serial communication resolved through update to iblpybpod-no-gui 3.1.0
 
 8.27.4
 ------
