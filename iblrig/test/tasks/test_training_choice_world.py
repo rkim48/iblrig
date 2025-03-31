@@ -15,18 +15,17 @@ class TestTrainingPhaseChoiceWorld(BaseTestCases.CommonTestInstantiateTask):
 
     def test_task(self):
         """
-        This test loops over training phases described in the mice training protocol and runs full
-        sessions with each training phase parameter
-        https://docs.google.com/document/d/1RA6wgbWfxD2kGlpNxt0n3HVcW4TEIx8e-YO7k_W1pHs/edit
-        It then checks for:
+        This test loops over training phases described in the mice training
+        protocol and runs full sessions with each training phase parameter
+        (cf. Appendix 2). It then checks for:
+
         -   the contrast set
         -   the presence or absence of debias trials
         -   the relative frequency of each contrast
-        :return:
         """
         trial_fixtures = get_fixtures()
         adaptive_reward = 1.9
-        nt = 800
+        n_trials = 800
         for training_phase in np.arange(6):
             with self.subTest(training_phase=training_phase):
                 np.random.seed(12354)
@@ -35,7 +34,7 @@ class TestTrainingPhaseChoiceWorld(BaseTestCases.CommonTestInstantiateTask):
                 )
                 assert task.training_phase == training_phase
                 task.create_session()
-                for _i in np.arange(nt):
+                for i_trial in range(n_trials):
                     task.next_trial()
                     # pc = task.psychometric_curve()
                     trial_type = np.random.choice(['correct', 'error', 'no_go'], p=[0.9, 0.05, 0.05])
@@ -73,9 +72,9 @@ class TestTrainingPhaseChoiceWorld(BaseTestCases.CommonTestInstantiateTask):
                         contrast_set = np.array([0.5, 1.0])
 
                 np.testing.assert_equal(contrasts['contrast'].values, contrast_set)
-                normalized_counts = np.abs(nt / contrast_set.size - contrasts['count'].values)
+                normalized_counts = np.abs(n_trials / contrast_set.size - contrasts['count'].values)
                 normalized_counts = normalized_counts * probas / np.sum(probas)
-                normalized_counts = normalized_counts / (nt / contrast_set.size)
+                normalized_counts = normalized_counts / (n_trials / contrast_set.size)
                 np.testing.assert_array_less(normalized_counts, 0.33)
                 if debias:
                     for index, row in trials_table.iterrows():
@@ -109,10 +108,9 @@ class TestInstantiationTraining(BaseTestCases.CommonTestInstantiateTask):
         for i_trial in range(n_trials):
             original_phase = task.training_phase
             task.next_trial()
+            assert task.trial_num == i_trial
             performance = choiceworld.compute_performance(task.trials_table)
             did_progress = task.training_phase > original_phase
-            assert task.trial_num == i_trial
-            # pc = task.psychometric_curve()
             trial_type = np.random.choice(['correct', 'error', 'no_go'], p=[0.9, 0.05, 0.05])
             task.trial_completed(trial_fixtures[trial_type])
             if trial_type == 'correct':
@@ -140,7 +138,6 @@ class TestInstantiationTraining(BaseTestCases.CommonTestInstantiateTask):
                 if (task.trials_table.loc[: i_trial - 1].training_phase == original_phase).sum() >= 200:
                     should_graduate = True
             assert did_progress == should_graduate
-        # we should have reached phase 5
         self.assertEqual(task.trials_table.at[i_trial, 'training_phase'], 5)
 
         # test contrast levels
@@ -162,7 +159,7 @@ class TestInstantiationTraining(BaseTestCases.CommonTestInstantiateTask):
                 case 4:
                     # The 0% contrast is added to the set.
                     expected_contrasts = [0, 0.0625, 0.125, 0.25, 0.5, 1.0]
-                case 5:
+                case _:
                     # The 50% contrast is removed from the set.
                     expected_contrasts = [0, 0.0625, 0.125, 0.25, 1.0]
             np.testing.assert_equal(actual_contrasts, expected_contrasts)
