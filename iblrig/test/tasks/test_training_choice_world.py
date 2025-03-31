@@ -102,11 +102,10 @@ class TestInstantiationTraining(BaseTestCases.CommonTestInstantiateTask):
     def test_task(self):
         trial_fixtures = get_fixtures()
         adaptive_reward = 1.9
-        n_trials = 800
+        n_trials = 1300
 
         task = TrainingChoiceWorldSession(**self.task_kwargs, adaptive_reward=adaptive_reward)
         task.create_session()
-        np.random.seed(12354)
         for i_trial in range(n_trials):
             original_phase = task.training_phase
             task.next_trial()
@@ -121,8 +120,6 @@ class TestInstantiationTraining(BaseTestCases.CommonTestInstantiateTask):
                 self.assertEqual(task.trials_table['reward_amount'][task.trial_num], adaptive_reward)
             else:
                 assert not task.trials_table['trial_correct'][task.trial_num]
-            if i_trial == 245:
-                task.show_trial_log()
             assert not np.isnan(task.reward_time)
 
             # assert correct progression through training phases
@@ -130,33 +127,71 @@ class TestInstantiationTraining(BaseTestCases.CommonTestInstantiateTask):
             if i_trial == 0:
                 continue
             if original_phase == 0:
-                assert task.trials_table.iloc[i_trial - 1].contrast in [0.5, 1.0]
-                passing = performance[np.abs(performance.index) >= 0.5]['last_50_perf'] > 0.8
-                should_graduate = np.all(passing) and (passing.size == 4)
+                # The proportion of correct responses over the previous 50 trials is recorded.
+                # To progress, the mouse must perform at or above 80% correct for each contrast on both sides.
+                last_50_perf = performance[abs(performance.index) >= 0.5]['last_50_perf']
+                should_graduate = all(last_50_perf > 0.8) and (last_50_perf.size == 4)
             elif original_phase == 1:
-                assert task.trials_table.iloc[i_trial - 1].contrast in [0.25, 0.5, 1.0]
-                passing = performance[np.abs(performance.index) == 0.25]['last_50_perf'] > 0.8
-                should_graduate = np.all(passing) and (passing.size == 2)
-            elif original_phase >= 2:
+                # To progress the mouse must perform at or above 80% on each of the 25% contrast last 50 trials.
+                last_50_perf = performance[abs(performance.index) == 0.25]['last_50_perf'] > 0.8
+                should_graduate = all(last_50_perf) and (last_50_perf.size == 2)
+            elif 5 > original_phase >= 2:
+                # To progress the mouse must perform 200 trials, regardless of performance.
                 if (task.trials_table.loc[: i_trial - 1].training_phase == original_phase).sum() >= 200:
                     should_graduate = True
             assert did_progress == should_graduate
-        # we should have progressed beyond phase 3
-        np.testing.assert_equal(task.trials_table['training_phase'].value_counts().sort_index().values, [181, 475, 144])
+        # we should have reached phase 5
+        self.assertEqual(task.trials_table.at[i_trial, 'training_phase'], 5)
+
+        # test contrast levels
+        for phase in range(6):
+            actual_contrasts = np.sort(task.trials_table[task.trials_table.training_phase == phase].contrast.unique())
+            match phase:
+                case 0:
+                    # Only 50% and 100% contrasts are presented.
+                    expected_contrasts = [0.5, 1.0]
+                case 1:
+                    # The 25% contrast is added to the set
+                    expected_contrasts = [0.25, 0.5, 1.0]
+                case 2:
+                    # The 12.5% contrast is added to the set.
+                    expected_contrasts = [0.125, 0.25, 0.5, 1.0]
+                case 3:
+                    # The 6.25% contrast is added to the set.
+                    expected_contrasts = [0.0625, 0.125, 0.25, 0.5, 1.0]
+                case 4:
+                    # The 0% contrast is added to the set.
+                    expected_contrasts = [0, 0.0625, 0.125, 0.25, 0.5, 1.0]
+                case 5:
+                    # The 50% contrast is removed from the set.
+                    expected_contrasts = [0, 0.0625, 0.125, 0.25, 1.0]
+            np.testing.assert_equal(actual_contrasts, expected_contrasts)
 
     def test_acquisition_description(self):
-        """Test that the acquisition description of the task matches the expected structure and values."""
-        actual_dict = self.task.experiment_description
-        expected_dict = {
-            'sync': {'bpod': {'collection': 'raw_task_data_00', 'extension': '.jsonable', 'acquisition_software': 'pybpod'}},
+        task = TrainingChoiceWorldSession(**self.task_kwargs)
+        actual_description = task.experiment_description
+        expected_description = {
+            'sync': {
+                'bpod': {
+                    'collection': 'raw_task_data_00',
+                    'extension': '.jsonable',
+                    'acquisition_software': 'pybpod',
+                },
+            },
             'devices': {
-                'cameras': {'left': {'collection': 'raw_video_data', 'sync_label': 'audio'}},
-                'microphone': {'microphone': {'collection': 'raw_task_data_00', 'sync_label': 'audio'}},
+                'cameras': {
+                    'left': {
+                        'collection': 'raw_video_data',
+                        'sync_label': 'audio',
+                    },
+                },
+                'microphone': {
+                    'microphone': {
+                        'collection': 'raw_task_data_00',
+                        'sync_label': 'audio',
+                    },
+                },
             },
             'tasks': [{'_iblrig_tasks_trainingChoiceWorld': {'collection': 'raw_task_data_00'}}],
         }
-        for key, expected_value in expected_dict.items():
-            assert key in actual_dict, f'Acquisition description does not match expected structure. No such key: `{key}`.'
-            assert actual_dict[key] == expected_value, (
-                f'Acquisition description does not match expected structure. Failed on key `{key}`.'
-            )
+        self.assertDictContainsSubset(expected_description, actual_description)
