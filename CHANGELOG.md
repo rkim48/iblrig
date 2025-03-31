@@ -1,12 +1,15 @@
 Changelog
 =========
 
-
 8.28.0
 ------
 * added: `_iblrig_tasks_spontaneousBpod` - a spontaneous task that includes Bpod spacers
 
 -------------------------------
+
+8.27.6
+------
+* fixed: detection of LED control ability broken for Bpods with old firmware  
 
 8.27.5
 ------
