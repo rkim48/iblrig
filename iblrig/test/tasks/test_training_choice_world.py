@@ -94,33 +94,33 @@ class TestTrainingPhaseChoiceWorld(BaseTestCases.CommonTestInstantiateTask):
 
 
 class TestInstantiationTraining(BaseTestCases.CommonTestInstantiateTask):
+    @classmethod
+    def setUpClass(cls):
+        cls.trial_fixtures = get_fixtures()
+        cls.adaptive_reward = 1.9
+
     def setUp(self):
         self.get_task_kwargs()
-        self.task = TrainingChoiceWorldSession(**self.task_kwargs)
+        self.task = TrainingChoiceWorldSession(**self.task_kwargs, adaptive_reward=self.adaptive_reward)
+        self.task.create_session()
 
     def test_task(self):
-        trial_fixtures = get_fixtures()
-        adaptive_reward = 1.9
-        n_trials = 1300
-
-        task = TrainingChoiceWorldSession(**self.task_kwargs, adaptive_reward=adaptive_reward)
-        task.create_session()
-        for i_trial in range(n_trials):
-            original_phase = task.training_phase
-            task.next_trial()
-            assert task.trial_num == i_trial
-            performance = choiceworld.compute_performance(task.trials_table)
-            did_progress = task.training_phase > original_phase
+        for i_trial in range(1300):
+            original_phase = self.task.training_phase
+            self.task.next_trial()
+            assert self.task.trial_num == i_trial
+            performance = choiceworld.compute_performance(self.task.trials_table)
+            did_progress = self.task.training_phase > original_phase
             trial_type = np.random.choice(['correct', 'error', 'no_go'], p=[0.9, 0.05, 0.05])
-            task.trial_completed(trial_fixtures[trial_type])
+            self.task.trial_completed(self.trial_fixtures[trial_type])
 
             # assert outcome and reward
             if trial_type == 'correct':
-                self.assertTrue(task.trials_table['trial_correct'][task.trial_num])
-                self.assertEqual(task.trials_table['reward_amount'][task.trial_num], adaptive_reward)
+                self.assertTrue(self.task.trials_table['trial_correct'][self.task.trial_num])
+                self.assertEqual(self.task.trials_table['reward_amount'][self.task.trial_num], self.adaptive_reward)
             else:
-                assert not task.trials_table['trial_correct'][task.trial_num]
-            assert not np.isnan(task.reward_time)
+                self.assertFalse(self.task.trials_table['trial_correct'][self.task.trial_num])
+            assert not np.isnan(self.task.reward_time)
             if i_trial == 0:
                 continue
 
@@ -137,38 +137,31 @@ class TestInstantiationTraining(BaseTestCases.CommonTestInstantiateTask):
                 should_progress = all(last_50_perf) and (last_50_perf.size == 2)
             elif 5 > original_phase >= 2:
                 # To progress the mouse must perform 200 trials, regardless of performance.
-                if (task.trials_table.loc[: i_trial - 1].training_phase == original_phase).sum() >= 200:
+                if (self.task.trials_table.loc[: i_trial - 1].training_phase == original_phase).sum() >= 200:
                     should_progress = True
             assert did_progress == should_progress
-        self.assertEqual(task.trials_table.at[i_trial, 'training_phase'], 5)
+        self.assertEqual(self.task.trials_table.at[i_trial, 'training_phase'], 5)
 
         # assert contrast levels
         for phase in range(6):
-            actual_contrasts = np.sort(task.trials_table[task.trials_table.training_phase == phase].contrast.unique())
+            actual_contrasts = np.sort(self.task.trials_table[self.task.trials_table.training_phase == phase].contrast.unique())
             match phase:
-                case 0:
-                    # Only 50% and 100% contrasts are presented.
+                case 0:  # Only 50% and 100% contrasts are presented.
                     expected_contrasts = [0.5, 1.0]
-                case 1:
-                    # The 25% contrast is added to the set
+                case 1:  # The 25% contrast is added to the set
                     expected_contrasts = [0.25, 0.5, 1.0]
-                case 2:
-                    # The 12.5% contrast is added to the set.
+                case 2:  # The 12.5% contrast is added to the set.
                     expected_contrasts = [0.125, 0.25, 0.5, 1.0]
-                case 3:
-                    # The 6.25% contrast is added to the set.
+                case 3:  # The 6.25% contrast is added to the set.
                     expected_contrasts = [0.0625, 0.125, 0.25, 0.5, 1.0]
-                case 4:
-                    # The 0% contrast is added to the set.
+                case 4:  # The 0% contrast is added to the set.
                     expected_contrasts = [0, 0.0625, 0.125, 0.25, 0.5, 1.0]
-                case _:
-                    # The 50% contrast is removed from the set.
+                case _:  # The 50% contrast is removed from the set.
                     expected_contrasts = [0, 0.0625, 0.125, 0.25, 1.0]
             np.testing.assert_equal(actual_contrasts, expected_contrasts)
 
     def test_acquisition_description(self):
-        task = TrainingChoiceWorldSession(**self.task_kwargs)
-        actual_description = task.experiment_description
+        actual_description = self.task.experiment_description
         expected_description = {
             'sync': {
                 'bpod': {
