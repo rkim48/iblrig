@@ -36,7 +36,7 @@ class TestTrainingPhaseChoiceWorld(BaseTestCases.CommonTestInstantiateTask):
                 task.create_session()
                 for i_trial in range(n_trials):
                     task.next_trial()
-                    # pc = task.psychometric_curve()
+                    assert task.trial_num == i_trial
                     trial_type = np.random.choice(['correct', 'error', 'no_go'], p=[0.9, 0.05, 0.05])
                     task.trial_completed(trial_fixtures[trial_type])
                     if trial_type == 'correct':
@@ -113,34 +113,36 @@ class TestInstantiationTraining(BaseTestCases.CommonTestInstantiateTask):
             did_progress = task.training_phase > original_phase
             trial_type = np.random.choice(['correct', 'error', 'no_go'], p=[0.9, 0.05, 0.05])
             task.trial_completed(trial_fixtures[trial_type])
+
+            # assert outcome and reward
             if trial_type == 'correct':
                 self.assertTrue(task.trials_table['trial_correct'][task.trial_num])
                 self.assertEqual(task.trials_table['reward_amount'][task.trial_num], adaptive_reward)
             else:
                 assert not task.trials_table['trial_correct'][task.trial_num]
             assert not np.isnan(task.reward_time)
-
-            # assert correct progression through training phases
-            should_graduate = False
             if i_trial == 0:
                 continue
+
+            # assert correct progression through training phases
+            should_progress = False
             if original_phase == 0:
                 # The proportion of correct responses over the previous 50 trials is recorded.
                 # To progress, the mouse must perform at or above 80% correct for each contrast on both sides.
                 last_50_perf = performance[abs(performance.index) >= 0.5]['last_50_perf']
-                should_graduate = all(last_50_perf > 0.8) and (last_50_perf.size == 4)
+                should_progress = all(last_50_perf > 0.8) and (last_50_perf.size == 4)
             elif original_phase == 1:
                 # To progress the mouse must perform at or above 80% on each of the 25% contrast last 50 trials.
                 last_50_perf = performance[abs(performance.index) == 0.25]['last_50_perf'] > 0.8
-                should_graduate = all(last_50_perf) and (last_50_perf.size == 2)
+                should_progress = all(last_50_perf) and (last_50_perf.size == 2)
             elif 5 > original_phase >= 2:
                 # To progress the mouse must perform 200 trials, regardless of performance.
                 if (task.trials_table.loc[: i_trial - 1].training_phase == original_phase).sum() >= 200:
-                    should_graduate = True
-            assert did_progress == should_graduate
+                    should_progress = True
+            assert did_progress == should_progress
         self.assertEqual(task.trials_table.at[i_trial, 'training_phase'], 5)
 
-        # test contrast levels
+        # assert contrast levels
         for phase in range(6):
             actual_contrasts = np.sort(task.trials_table[task.trials_table.training_phase == phase].contrast.unique())
             match phase:
