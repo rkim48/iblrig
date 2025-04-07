@@ -1343,6 +1343,7 @@ class NetworkSession(BaseSession):
 
         paths.SESSION_RAW_DATA_FOLDER = paths.SESSION_FOLDER.joinpath(paths.TASK_COLLECTION)
         paths.DATA_FILE_PATH = paths.SESSION_RAW_DATA_FOLDER.joinpath('_iblrig_taskData.raw.jsonable')
+        paths.AMBIENT_FILE_PATH = paths.SESSION_RAW_DATA_FOLDER.joinpath('_iblrig_ambientSensorData.raw.bin')
         paths.SETTINGS_FILE_PATH = paths.SESSION_RAW_DATA_FOLDER.joinpath('_iblrig_taskSettings.raw.json')
         self.session_info.SESSION_NUMBER = int(paths.SESSION_FOLDER.name)
         return paths
