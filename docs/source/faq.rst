@@ -86,11 +86,13 @@ Camera Issues
       USB2 (black tabs) neither provides the necessary transfer rates nor sufficient current to power the camera.
    *  Use the `original USB3.1 cable <https://www.flir.com/products/usb-3.1-locking-cable>`_ provided by FLIR.
       It comes in 3 m or 5 m - stick with the shorter version if possible.
-   *  Try to avoid USB extensions.
+   *  Avoid USB extension cables.
       The original cable (see above) should be sufficiently long in most situations.
-   *  Ideally, use one of the onboard USB3 ports of your computer facing to the back of the machine.
-      Front-facing ports may not be able to provide enough power.
+   *  Ideally, use one of the computer's onboard USB3 ports facing to the back of the machine.
+      Front-facing ports may not be able to provide enough power to the camera.
+      PCIe expansion cards that provide additional USB3 ports can also be finicky when it comes to power delivery (see next point).
    *  If you use a USB 3.1 Host Controller Card check if it requires additional powering through a SATA or Molex cable.
+      If it doesn't have an auxiliary power connector, it might not be able to provide enough power to the camera.
       FLIR offers `a few models <https://www.flir.com/products/usb-3.1-host-controller-card>`_ that should work fine.
 
 *  If the BONSAI panels for the video live view do not show up there might be an issue with the
