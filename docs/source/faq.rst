@@ -84,6 +84,9 @@ Camera Issues
 
    *  Ensure that the camera is connected to the computer on a USB3 port (usually indicated by a blue plastic tab in the port).
       USB2 (black tabs) neither provides the necessary transfer rates nor sufficient current to power the camera.
+   *  If you have multiple cameras connected to the computer, ensure that they use separate USB3 root hub.
+      This is to ensure that the cameras do not have to share the available bandwidth of a single root hub.
+      Use `USB Device Tree Viewer <https://www.uwe-sieber.de/usbtreeview_e.html>`_ to check the USB3 root hub configuration.
    *  Use the `original USB3.1 cable <https://www.flir.com/products/usb-3.1-locking-cable>`_ provided by FLIR.
       It comes in 3 m or 5 m - stick with the shorter version if possible.
    *  Avoid USB extension cables.
