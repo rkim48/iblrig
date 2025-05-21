@@ -203,6 +203,7 @@ class Bpod(BpodIO):
                 'bonsai_closed_loop': (module_port, self._define_message(module, [ord('#'), 3])),
                 'bonsai_freeze_stim': (module_port, self._define_message(module, [ord('#'), 4])),
                 'bonsai_show_center': (module_port, self._define_message(module, [ord('#'), 5])),
+                'bonsai_freeze_center': (module_port, self._define_message(module, [ord('#'), 9])),
             }
         )
 
@@ -370,7 +371,7 @@ class RotaryEncoderModule(PybpodRotaryEncoderModule):
         self.enable_evt_transmission()
 
     def close(self):
-        if getattr(self, 'arcom') is not None:
+        if getattr(self, 'arcom') is not None:  # noqa: B009
             log.debug(f'Closing serial connection to {self._name} on port {self.settings.COM_ROTARY_ENCODER}')
             super().close()
 

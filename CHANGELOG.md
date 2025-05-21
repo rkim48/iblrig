@@ -1,6 +1,9 @@
 Changelog
 =========
 
+8.27.7
+* fixed: choice world family: visual stimulus could sometimes be moved after reward delivery
+
 8.27.6
 ------
 * fixed: detection of LED control ability broken for Bpods with old firmware  
