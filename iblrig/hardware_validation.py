@@ -501,7 +501,7 @@ class ValidatorDataFolders(Validator):
     _name = 'Data Folders'
 
     def _run(self):
-        if self.iblrig_settings.iblrig_remote_data_path is None:
+        if self.iblrig_settings.iblrig_remote_data_path in (None, False):
             yield Result(Status.SKIP, 'iblrig_remote_data_path has not been set in hardware_settings.yaml - skipping validation')
             return False
         elif self.iblrig_settings.iblrig_remote_data_path.exists():
@@ -513,6 +513,7 @@ class ValidatorDataFolders(Validator):
                 f"Cannot access remote data path '{self.iblrig_settings.iblrig_remote_data_path}'",
                 solution='Check network connection and mapping of network drive',
             )
+            return False
 
 
 class ValidatorAlyx(Validator):
