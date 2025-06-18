@@ -843,7 +843,7 @@ class ValidatorSound(ValidatorSerial):
 
 
 def get_all_validators() -> list[type[Validator]]:
-    return [cast(type[Validator], x) for x in get_inheritors(Validator) if not isabstract(x)]
+    return [cast('type[Validator]', x) for x in get_inheritors(Validator) if not isabstract(x)]
 
 
 def run_all_validators(
