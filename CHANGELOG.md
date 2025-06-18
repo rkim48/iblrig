@@ -11,6 +11,7 @@ Changelog
 * added: indicate remote rigs in `_iblrig_taskSettings.raw.json`
 * added: `ibl-photometry` dependency
 * changed: reduce traceback size in UDP message
+* changed: hardware validation - more solid way to estimate TTL rates
 
 -------------------------------
 
