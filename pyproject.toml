@@ -46,6 +46,7 @@ dependencies = [
     "PyYAML>=6.0.2",
     "scipy>=1.15.3",
     "sounddevice>=0.5.2",
+    "psutil>=7.0.0",
 ]
 [project.optional-dependencies]
 project-extraction = [
