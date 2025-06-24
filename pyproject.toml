@@ -46,6 +46,8 @@ dependencies = [
     "PyYAML>=6.0.2",
     "scipy>=1.15.3",
     "sounddevice>=0.5.2",
+    "pydantic-settings>=2.9.1",
+    "qtpy>=2.4.2",
     "psutil>=7.0.0",
 ]
 [project.optional-dependencies]
@@ -54,7 +56,7 @@ project-extraction = [
 ]
 
 [project.scripts]
-view_session            = "iblrig.commands:view_session"
+view_session            = "iblrig.gui.online_plots:online_plots_cli"
 transfer_data           = "iblrig.commands:transfer_data_cli"
 transfer_video_data     = "iblrig.commands:transfer_video_data_cli"
 transfer_ephys_data     = "iblrig.commands:transfer_ephys_data_cli"
@@ -82,7 +84,7 @@ path = 'iblrig/__init__.py'
 source-includes = [ "docs", "iblrig/test" ]
 excludes = [ "docs/build" ]
 
-[tool.pdm.dev-dependencies]
+[dependency-groups]
 dev = [
     "iblrig[doc,test,typing]",
     "deadcode>=2.4.1",
@@ -90,7 +92,8 @@ dev = [
 test = [
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
-    "ruff>=0.12.0",
+    "pytest-qt>=4.4.0",
+    "ruff==0.12.0",
 ]
 doc = [
     "sphinx>=7.4.7",
