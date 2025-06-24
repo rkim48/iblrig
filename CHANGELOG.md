@@ -10,6 +10,7 @@ Changelog
 * added: check for remote data folder during hardware validation
 * added: indicate remote rigs in `_iblrig_taskSettings.raw.json`
 * added: `ibl-photometry` dependency
+* changed: Handling of camera and initial delay moved out of ChoiceWorld's state machine definition
 * changed: reduce traceback size in UDP message
 * changed: hardware validation - more solid way to estimate TTL rates
 * changed: clean-up after failed session (terminate Bonsai processes and stop state machine)
