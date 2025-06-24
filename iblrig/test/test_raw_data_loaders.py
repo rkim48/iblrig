@@ -45,8 +45,8 @@ class TestRawDataLoaders(unittest.TestCase):
         assert isinstance(data, pd.DataFrame)
         self.assertListEqual(data.columns.to_list(), ['Type', 'State', 'Trial', 'Event', 'Channel', 'Value'])
         assert np.all(np.diff(data.index).astype(float) >= 0.0)
-        assert data.Trial[0] == 0
-        assert data.Trial[-1] == len(bpod_data) - 1
+        assert data.Trial.iloc[0] == 0
+        assert data.Trial.iloc[-1] == len(bpod_data) - 1
 
     def test_bpod_trial_data_to_dataframes(self):
         _, bpod_data = raw_data_loaders.load_task_jsonable(self.jsonable)
