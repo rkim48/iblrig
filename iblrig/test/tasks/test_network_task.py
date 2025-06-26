@@ -23,7 +23,7 @@ class TestNetworkTask(unittest.TestCase, TaskArgsMixin):
     def setUp(self):
         self.clients = {'ZcanImage': 'udp://192.168.0.1', 'cameras': 'udp://192.168.0.2'}
         self.get_task_kwargs()
-        self.task_kwargs['one'] = ONE(silent=True, mode='local')
+        self.task_kwargs['one'] = ONE(silent=True)
         self.task_kwargs['remote_rigs'] = self.clients
         self.task_kwargs['hardware_settings']['MAIN_SYNC'] = False
         # An experiment reference for our remote sync to return
