@@ -767,7 +767,7 @@ class OnlinePlotsModel(QObject):
             color = Colors.GREEN
 
         # the subject reaction time over the last 20 trials is more than 5 times greater than the overall reaction time
-        elif (self._trial_data['response_time'].median() * 5) < self._trial_data['response_time'][20:].median():
+        elif (self._trial_data['response_time'].median() * 5) < self._trial_data['response_time'][-20:].median():
             color = Colors.YELLOW
 
         # 90 > time > 45 min and subject's avg response time hasn't significantly decreased
