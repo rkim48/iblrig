@@ -85,5 +85,6 @@ class TestOnlinePlots:
         with qtbot.waitSignal(model.titleColorChanged, timeout=5):
             model._trial_data['response_time'][-20:] = 5.1
             model.compute_end_session_criteria()
+            assert model.titleColor == op.Colors.YELLOW
 
         model.jsonableWatcher.removePath(str(task_file))
