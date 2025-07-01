@@ -96,6 +96,23 @@ Bpod States and Events:
    Hover the mouse over a state to see the respective state name in the window's status bar.
    Use the mouse wheel to zoom in and out, and click and drag to pan the plot.
 
+
+Engagement Criteria / Color-Code
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+From 45 minutes after the start of a session, the online plots will indicate engagement criteria by changing the background color of the header area.
+The color-coding is as follows:
+
+Red:
+   The subject has been training for more than 90 minutes.
+
+Green:
+   The subject failed to complete more than 400 trials in the first 45 mins.
+
+Yellow:
+   The subject's reaction time over the last 20 trials is more than 5 times greater than the overall reaction time.
+
+
 Displaying Past Sessions
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
