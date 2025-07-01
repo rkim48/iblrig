@@ -36,6 +36,7 @@ from qtpy.QtWidgets import (
     QApplication,
     QFileDialog,
     QFrame,
+    QGraphicsDropShadowEffect,
     QGraphicsRectItem,
     QGraphicsSceneHoverEvent,
     QGridLayout,
@@ -111,7 +112,9 @@ class PlotWidget(pg.PlotWidget):
 class SingleBarChartWidget(PlotWidget):
     """A bar chart with a single column for use with PyQtGraph"""
 
-    def __init__(self, *args, barColor: Any = 0.4, textColor: Any = 1.0, textFormat: str = '{:g}', **kwargs):
+    _font = QFont("Helvetica", 18, QFont.Bold)
+
+    def __init__(self, *args, barColor: Any = 0.2, textColor: Any = 1.0, textFormat: str = '{:g}', **kwargs):
         super().__init__(*args, **kwargs)
 
         y_axis = self.plotItem.getAxis('left')
@@ -124,10 +127,12 @@ class SingleBarChartWidget(PlotWidget):
         x_axis.setStyle(tickLength=0, tickAlpha=0)
         self.plotItem.setXRange(min=0, max=2, padding=0)
 
+        bar_color = pg.mkColor(barColor)
         gradient = QLinearGradient(0, 0, 0, 1)
         gradient.setCoordinateMode(QGradient.ObjectBoundingMode)
-        gradient.setColorAt(0.9, pg.mkColor(barColor))
-        gradient.setColorAt(0, pg.mkColor((255, 255, 255, 0)))
+        gradient.setColorAt(0.9, bar_color)
+        bar_color.setAlpha(128)
+        gradient.setColorAt(0, bar_color)
         self._barGraphItem = pg.BarGraphItem(x=1, width=2, height=0, pen=None, brush=QBrush(gradient))
         self.addItem(self._barGraphItem)
 
@@ -135,6 +140,7 @@ class SingleBarChartWidget(PlotWidget):
         self._textItem = pg.TextItem('0', anchor=(0.5, 0), color=textColor)
         self._textItem.setX(1)
         self._textItem.setY(50)
+        self._textItem.setFont(self._font)
         self.addItem(self._textItem)
 
     @Slot(float)
@@ -172,11 +178,11 @@ class FunctionWidget(PlotWidget):
             self.addItem(self.fillItems[p])
             self.plotDataItems[p] = self.plotItem.plot(connect='all')
             self.plotDataItems[p].setData(x=[1, np.NAN], y=[np.NAN, 1])
-            self.plotDataItems[p].setPen(pg.mkPen(color=line_color, width=2))
+            self.plotDataItems[p].setPen(pg.mkPen(color=line_color, width=4))
             self.plotDataItems[p].setSymbol('o')
             self.plotDataItems[p].setSymbolPen(line_color)
-            self.plotDataItems[p].setSymbolBrush(line_color)
-            self.plotDataItems[p].setSymbolSize(5)
+            self.plotDataItems[p].setSymbolBrush(line_color.lighter(150))
+            self.plotDataItems[p].setSymbolSize(4)
             legend.addItem(self.plotDataItems[p], f'p = {p:0.1f}')
 
 
@@ -334,7 +340,6 @@ class ResponseTimeDelegate(QStyledItemDelegate):
     color_error = QColor(219, 67, 37)
     color_nogo = QColor(192, 192, 192)
     color_text = QColor('white')
-    color_gradient0 = QColor(255, 255, 255, 0)
 
     def paint(self, painter, option, index):
         super().paint(painter, option, index)
@@ -350,10 +355,7 @@ class ResponseTimeDelegate(QStyledItemDelegate):
         norm_value = np.log(value / self.norm_min) / self.norm_div
         filled_rect = QRectF(option.rect)
         filled_rect.setWidth(filled_rect.width() * norm_value)
-        gradient = QLinearGradient(filled_rect.topLeft(), filled_rect.topRight())
-        gradient.setColorAt(0, self.color_gradient0)
-        gradient.setColorAt(1, self.color_correct if outcome == 'correct' else self.color_error)
-        painter.setBrush(gradient)
+        painter.setBrush(self.color_correct if outcome == 'correct' else self.color_error)
         painter.setPen(Qt.NoPen)
         painter.drawRect(filled_rect)
 
@@ -916,7 +918,7 @@ class OnlinePlotsView(QMainWindow):
         layout.addWidget(self.performanceWidget, 1, 2, 1, 1)
 
         # reward chart
-        self.rewardWidget = SingleBarChartWidget(parent=self, barColor=(128, 128, 255), textFormat='{:0.1f} μl')
+        self.rewardWidget = SingleBarChartWidget(parent=self, barColor=(64, 64, 255), textFormat='{:0.1f} μl')
         self.rewardWidget.plotItem.setTitle('Reward Amount', color='k')
         self.rewardWidget.plotItem.getAxis('left').setLabel('Total Reward Volume (μl)')
         self.rewardWidget.plotItem.setYRange(0, 1050, padding=0)
@@ -948,9 +950,7 @@ class OnlinePlotsView(QMainWindow):
     def setTitleBackground(self, color: str):
         """Set the background color of the title area to a gradient of the specified color."""
         self.titleFrame.setStyleSheet(
-            f'QFrame {{ background-color: qlineargradient(x1: 0, x2: 1, '
-            f'stop: 0 {color}, stop: 0.2 transparent, stop: 0.8 transparent, stop: 1 {color}); }}\n'
-            f'QLabel {{ background-color: transparent; }}'
+            f'QFrame {{ background-color: {color}; }}'
         )
 
     def mouseOverBarChart(self, event):
