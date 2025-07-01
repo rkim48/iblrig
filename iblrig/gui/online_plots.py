@@ -36,7 +36,6 @@ from qtpy.QtWidgets import (
     QApplication,
     QFileDialog,
     QFrame,
-    QGraphicsDropShadowEffect,
     QGraphicsRectItem,
     QGraphicsSceneHoverEvent,
     QGridLayout,
@@ -112,7 +111,7 @@ class PlotWidget(pg.PlotWidget):
 class SingleBarChartWidget(PlotWidget):
     """A bar chart with a single column for use with PyQtGraph"""
 
-    _font = QFont("Helvetica", 18, QFont.Bold)
+    _font = QFont('Helvetica', 18, QFont.Bold)
 
     def __init__(self, *args, barColor: Any = 0.2, textColor: Any = 1.0, textFormat: str = '{:g}', **kwargs):
         super().__init__(*args, **kwargs)
@@ -949,9 +948,7 @@ class OnlinePlotsView(QMainWindow):
     @Slot(str)
     def setTitleBackground(self, color: str):
         """Set the background color of the title area to a gradient of the specified color."""
-        self.titleFrame.setStyleSheet(
-            f'QFrame {{ background-color: {color}; }}'
-        )
+        self.titleFrame.setStyleSheet(f'QFrame {{ background-color: {color}; }}')
 
     def mouseOverBarChart(self, event):
         statusbar = self.window().statusBar()
@@ -1014,11 +1011,13 @@ class OnlinePlotsView(QMainWindow):
         event.accept()
 
     def moveEvent(self, event):
-        self.settings.setValue('pos', self.pos())
+        if hasattr(self, 'settings'):
+            self.settings.setValue('pos', self.pos())
         super().moveEvent(event)
 
     def resizeEvent(self, event):
-        self.settings.setValue('size', self.size())
+        if hasattr(self, 'settings'):
+            self.settings.setValue('size', self.size())
         super().resizeEvent(event)
 
 
