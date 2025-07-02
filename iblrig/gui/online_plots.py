@@ -807,10 +807,10 @@ class OnlinePlotsModel(QObject):
         reward_amount = training_info['adaptive_reward'] if use_adaptive_reward else self.task_settings.get('REWARD_AMOUNT_UL')
         self.sessionString = (
             f'Subject: {self.task_settings.get("SUBJECT_NAME")}  ·  '
-            f'Weight: {self.task_settings.get("SUBJECT_WEIGHT")} g  ·  '
+            f'Weight: {self.task_settings.get("SUBJECT_WEIGHT"):0.1f} g  ·  '
             f'Training Phase: {training_info["training_phase"]}  ·  '
-            f'Stimulus Gain: {self.task_settings.get("STIM_GAIN")}  ·  '
-            f'{"Adaptive " if use_adaptive_reward else ""}Reward Amount: {reward_amount} µl'
+            f'Stimulus Gain: {self.task_settings.get("STIM_GAIN"):0.1f}  ·  '
+            f'{"Adaptive " if use_adaptive_reward else ""}Reward Amount: {reward_amount:0.1f} µl'
         )
         self.sessionStringAvailable.emit(self.sessionString)
 
