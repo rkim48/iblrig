@@ -147,7 +147,22 @@ class SingleBarChartWidget(PlotWidget):
         self._barGraphItem.setOpts(height=value)
         self._textItem.setText(self._textFormat.format(value))
         self._textItem.setY(value)
+        self._setTextAnchor()
 
+    def resizeEvent(self, ev):
+        super().resizeEvent(ev)
+        if hasattr(self, '_textItem'):
+            self._setTextAnchor()
+
+    def _setTextAnchor(self):
+        """Anchor _textItem above or below upper edge of _barGraphItem, depending on available space"""
+        bar_height_px = self.height() / self.viewRect().height() * self._barGraphItem.boundingRect().height()
+        if self._textItem.boundingRect().height() > bar_height_px:
+            self._textItem.setAnchor((0.5, 1))
+            self._textItem.setColor('black')
+        else:
+            self._textItem.setAnchor((0.5, 0))
+            self._textItem.setColor('white')
 
 class FunctionWidget(PlotWidget):
     """A widget for psychometric and chronometric functions"""
