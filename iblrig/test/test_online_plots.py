@@ -79,11 +79,11 @@ class TestOnlinePlots:
         model._n_trials_engaged = 401
         model.compute_end_session_criteria()
         with qtbot.assertNotEmitted(model.titleColorChanged):
-            model._trial_data['response_time'][-20:] = 5
+            model._trial_data.loc[model._trial_data.index[-20:], 'response_time'] = 5
             model.compute_end_session_criteria()
             assert model.titleColor == op.Colors.TRANSPARENT
         with qtbot.waitSignal(model.titleColorChanged, timeout=5):
-            model._trial_data['response_time'][-20:] = 5.1
+            model._trial_data.loc[model._trial_data.index[-20:], 'response_time'] = 6
             model.compute_end_session_criteria()
             assert model.titleColor == op.Colors.YELLOW
 
