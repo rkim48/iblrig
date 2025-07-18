@@ -602,8 +602,6 @@ class ChoiceWorldSession(
             with self.paths['AMBIENT_FILE_PATH'].open('ab') as f:
                 binary.write_array(f, [self.trial_num, *sensor_reading], DTYPE_AMBIENT_SENSOR_BIN)
 
-        # this is a flag for the online plots. If online plots were in pyqt5, there is a file watcher functionality
-        Path(self.paths['DATA_FILE_PATH']).parent.joinpath('new_trial.flag').touch()
         self.paths.SESSION_FOLDER.joinpath('transfer_me.flag').touch()
         self.check_sync_pulses(bpod_data=bpod_data)
 
