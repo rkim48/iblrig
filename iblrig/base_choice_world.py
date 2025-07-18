@@ -818,7 +818,7 @@ class ActiveChoiceWorldSession(ChoiceWorldSession):
             )
         super()._run()
 
-    def __del__(self):
+    def _finalize(self):
         if isinstance(self.plot_subprocess, subprocess.Popen) and self.plot_subprocess.poll() is None:
             log.info('Terminating subprocess: online plots')
             self.plot_subprocess.terminate()

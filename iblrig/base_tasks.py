@@ -16,6 +16,7 @@ import signal
 import sys
 import time
 import traceback
+import weakref
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from collections.abc import Callable
@@ -201,6 +202,10 @@ class BaseSession(ABC):
             stub,
             extractors=self.extractor_tasks,
         )
+        self.finalize = weakref.finalize(self, self._finalize)
+
+    def _finalize(self):  # noqa: B027
+        """Clean-up tasks prior to destroying the object"""
 
     @property
     def session_path(self) -> Path | None:
