@@ -1,0 +1,12 @@
+'ADAPTIVE_GAIN': False
+'ADAPTIVE_REWARD': False
+'AG_INIT_VALUE': 8.0  # Adaptive Gain init value. Once the mouse completes 200 response trials whithin a session, this reverts to STIM_GAIN
+'ANGLE_SET': [90, 0] # 90 degrees is go trial (vertical), 0 degrees is no-go trial (horizontal)
+'ANGLE_SET_PROBABILITY_TYPE': uniform  # uniform, skew_zero
+'ANGLE_SET_PROBABILITY_DICT': {90: 0.5, 0: 0.5} # Probability of each angle in ANGLE_SET
+'DEBIAS': False  # Whether to use debiasing rule or not by repeating error trials
+'REWARD_AMOUNT_UL': 3.0  # Reward amount (uL), will oscillate between 1.5 and 3 uL depending on previous sessions if adaptive_reward is True
+'FEEDBACK_ERROR_DELAY_SECS': 2
+'ITI_DELAY_SECS': 0.5  # Inter-trial interval delay in seconds
+'WHITE_NOISE_DURATION': 0.4
+'WHITE_NOISE_AMPLITUDE': 0.3

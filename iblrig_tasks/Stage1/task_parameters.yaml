@@ -1,0 +1,8 @@
+'ADAPTIVE_GAIN': True
+'ADAPTIVE_REWARD': True
+'AG_INIT_VALUE': 8.0  # Adaptive Gain init value. Once the mouse completes 200 response trials whithin a session, this reverts to STIM_GAIN
+'DEBIAS': False  # Whether to use debiasing rule or not by repeating error trials
+'REWARD_AMOUNT_UL': 3.0  # Reward amount (uL), will oscillate between 1.5 and 3 uL depending on previous sessions if adaptive_reward is True
+'WHITE_NOISE_DURATION': 0.4
+'WHITE_NOISE_AMPLITUDE': 0.3
+'ITI_DELAY_SECS': 0.5  # Inter-trial interval delay in seconds
