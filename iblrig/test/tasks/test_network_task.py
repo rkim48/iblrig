@@ -1,14 +1,11 @@
 """Tests for NetworkSession class."""
 
-import tempfile
 import unittest
 from datetime import date
-from functools import partial
 from unittest.mock import ANY, call, patch
 
-from ibllib.tests import TEST_DB
 from iblrig.base_tasks import EmptySession, NetworkSession
-from iblrig.test.base import TaskArgsMixin, get_file
+from iblrig.test.base import TaskArgsMixin
 from iblutil.io import net
 from one.api import ONE
 
@@ -26,9 +23,7 @@ class TestNetworkTask(unittest.TestCase, TaskArgsMixin):
     def setUp(self):
         self.clients = {'ZcanImage': 'udp://192.168.0.1', 'cameras': 'udp://192.168.0.2'}
         self.get_task_kwargs()
-        self.one_temp_dir = tempfile.TemporaryDirectory()
-        with patch('one.params.iopar.getfile', new=partial(get_file, self.one_temp_dir.name)):
-            self.task_kwargs['one'] = ONE(**TEST_DB)
+        self.task_kwargs['one'] = ONE(silent=True, mode='local')
         self.task_kwargs['remote_rigs'] = self.clients
         self.task_kwargs['hardware_settings']['MAIN_SYNC'] = False
         # An experiment reference for our remote sync to return
@@ -97,18 +92,15 @@ class TestNetworkTask(unittest.TestCase, TaskArgsMixin):
         # Remote subject doesn't match
         task_kwargs = self.task_kwargs | {'subject': 'foobar'}
         self.assertRaises(ValueError, Session, **task_kwargs)
-
-        # # Append doesn't match
-        # # NB: For now, append is simply ignored
-        # task_kwargs = self.task_kwargs | {'append': True}
-        # self.assertRaises(ValueError, Session, **task_kwargs)  # append should be False
-        # task.paths.SESSION_FOLDER.mkdir(parents=True)
-        # task.paths.SESSION_FOLDER.joinpath(task.paths.TASK_COLLECTION).mkdir()
-        # self.assertRaises(ValueError, Session, **self.task_kwargs)  # append should be True
-        # task_2 = Session(**task_kwargs)
-        # self.assertEqual('raw_task_data_01', task_2.paths.TASK_COLLECTION)
-        # task.paths.SESSION_FOLDER.joinpath(task.paths.TASK_COLLECTION).rmdir()
-
+        # Append doesn't match
+        task_kwargs = self.task_kwargs | {'append': True}
+        self.assertRaises(ValueError, Session, **task_kwargs)  # append should be False
+        task.paths.SESSION_FOLDER.mkdir(parents=True)
+        task.paths.SESSION_FOLDER.joinpath(task.paths.TASK_COLLECTION).mkdir()
+        self.assertRaises(ValueError, Session, **self.task_kwargs)  # append should be True
+        task_2 = Session(**task_kwargs)
+        self.assertEqual('raw_task_data_01', task_2.paths.TASK_COLLECTION)
+        task.paths.SESSION_FOLDER.joinpath(task.paths.TASK_COLLECTION).rmdir()
         # Date doesn't match
         aux.push.return_value['ZcanImage'][1]['exp_ref'] = '2020-01-01' + self.exp_ref[10:]
         self.assertRaises(RuntimeError, Session, **self.task_kwargs)

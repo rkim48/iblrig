@@ -1,6 +1,6 @@
 'AUTOMATIC_CALIBRATION': true
 'ADAPTIVE_REWARD': false
-'BONSAI_EDITOR': false
+'BONSAI_EDITOR': true
 'CALIBRATION_VALUE': 0.067
 'CONTRAST_SET': [1.0, 0.25, 0.125, 0.0625, 0.0]
 'CONTRAST_SET_PROBABILITY_TYPE': uniform  # uniform or skew_zero: uniform makes the 0 contrast as likely as the others, while skew_zero makes it half as likely as other contrasts
@@ -23,7 +23,7 @@
 'RESPONSE_WINDOW': 60
 'REWARD_AMOUNT_UL': 1.5
 'REWARD_TYPE': Water 10% Sucrose
-'STIM_ANGLE': 0.0
+'STIM_ANGLE': 45 # 0
 'STIM_FREQ': 0.1
 'STIM_GAIN': 4.0  # wheel to stimulus relationship (degrees visual angle per mm of wheel displacement)
 'STIM_POSITIONS': [-35, 35]

@@ -123,11 +123,6 @@ class Auxiliaries:
         if any(self._clients):
             self._thread = threading.Thread(target=asyncio.run, args=(self.listen(),), name='network_coms')
             self._thread.start()
-            log.debug('waiting for connection with timeout 1 sec')
-            with self.connected:
-                success = self.connected.wait_for(lambda: self.is_connected is True, timeout=1)
-                if not success:
-                    raise RuntimeError('Failed to connect to remote rigs')
 
     @property
     def is_connected(self) -> bool:
@@ -201,8 +196,7 @@ class Auxiliaries:
         are sent to the remote services and the collated responses are added to the log.
         Exits only after stop event is set. This should be called from a daemon thread.
         """
-        with self.connected:
-            await self.create()
+        await self.create()
         while not self.stop_event.is_set():
             if any(queue := sorted(self._queued)):
                 request_time = queue[0]
@@ -218,7 +212,7 @@ class Auxiliaries:
                         case net.base.ExpMessage.EXPINIT:
                             responses = await self.services.init(*args)
                         case net.base.ExpMessage.EXPEND | net.base.ExpMessage.EXPINTERRUPT:
-                            responses = await self.services.stop(*args, immediately=event is net.base.ExpMessage.EXPINTERRUPT)
+                            responses = await self.services.stop(args, immediately=event is net.base.ExpMessage.EXPINTERRUPT)
                         case net.base.ExpMessage.EXPINFO:
                             # TODO Instead of waiting for all responses, cancel futures when main sync responds?
                             # async def first(aiterable, condition=lambda i: True):
@@ -228,7 +222,7 @@ class Auxiliaries:
                             #             yield x
                             #
                             # res = await anext(first(asyncio.as_completed(tasks), lambda r: r[-1]['main_sync']))
-                            responses = await self.services.info(*args)
+                            responses = await self.services.info(event, *args)
                         case net.base.ExpMessage.ALYX:
                             responses = await self.services.alyx(*args)
                         case _:
@@ -425,7 +419,6 @@ def get_remote_devices(remote_devices_file=None, iblrig_settings=None):
 
 async def get_server_communicator(service_uri, name: str):
     """
-    TODO DOCUMENT
 
     Parameters
     ----------

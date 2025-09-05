@@ -39,13 +39,13 @@ class BunchModel(BaseModel, abc.MutableMapping):
         return len(self.__dict__)
 
     def __iter__(self):
-        return iter(self.__class__.model_fields.keys())
+        return iter(self.model_fields.keys())
 
     def items(self):
         return [(key, getattr(self, key)) for key in self.keys()]
 
     def keys(self):
-        return self.__class__.model_fields.keys()
+        return self.model_fields.keys()
 
     def values(self):
         return (getattr(self, key) for key in self.keys())
@@ -96,7 +96,6 @@ class HardwareSettingsBpod(BunchModel):
     SOUND_BOARD_BPOD_PORT: Literal['Serial1', 'Serial2', 'Serial3', 'Serial4', 'Serial5', None] = None
     ROTARY_ENCODER_BPOD_PORT: Literal['Serial1', 'Serial2', 'Serial3', 'Serial4', 'Serial5', None] = None
     DISABLE_BEHAVIOR_INPUT_PORTS: list[BehaviourInputPort] = [2, 3, 4]
-    USE_AMBIENT_MODULE: bool = True
 
 
 class HardwareSettingsFrame2TTL(BunchModel):
@@ -166,9 +165,8 @@ class HardwareSettingsCamera(BunchModel):
 
 class HardwareSettingsNeurophotometrics(BunchModel):
     DEVICE_MODEL: Literal['NP3002'] = 'NP3002'
-    BONSAI_EXECUTABLE: ExistingFilePath = Path.home().joinpath('AppData', 'Local', 'Bonsai', 'Bonsai.exe')
+    BONSAI_EXECUTABLE: ExistingFilePath = Path(Path.home().joinpath('AppData', 'Local', 'Bonsai', 'Bonsai.exe'))
     BONSAI_WORKFLOW: Path = Path('devices', 'neurophotometrics', 'FP3002.bonsai')
-    BONSAI_WORKFLOW_DAQ: Path = Path('devices', 'neurophotometrics', 'FP3002_daq.bonsai')
     COM_NEUROPHOTOMETRY: str | None = None
 
 
@@ -249,26 +247,3 @@ class TrialDataModel(BaseModel):
             default_value = field_info.default if field_info.default is not PydanticUndefined else pd.NA
             data[field] = [default_value] * n_rows
         return pd.DataFrame(data)
-
-        # # Create a NumPy array for the data
-        # data_array = np.empty((n_rows, len(cls.model_fields)), dtype=object)
-        #
-        # # Fill default values
-        # for i, (field, field_info) in enumerate(cls.model_fields.items()):
-        #     if (default_value := field_info.default) is not PydanticUndefined:
-        #         data_array[:, i] = default_value
-        #
-        # # Map model's dtypes to pandas nullable types
-        # dtypes = {name: field.annotation for name, field in cls.model_fields.items()}
-        # dtype_mapping = {
-        #     int: pd.Int64Dtype(),
-        #     float: pd.Float64Dtype(),
-        #     bool: pd.BooleanDtype(),
-        #     str: pd.StringDtype(),
-        # }
-        # nullable_dtypes = {name: dtype_mapping.get(dtype, object) for name, dtype in dtypes.items()}
-        #
-        # # Create empty DataFrame with specified dtypes
-        # df = pd.DataFrame(data_array, columns=cls.model_fields.keys()).astype(nullable_dtypes)
-        #
-        # return df

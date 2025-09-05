@@ -16,7 +16,6 @@ import signal
 import sys
 import time
 import traceback
-import types
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from collections.abc import Callable
@@ -35,14 +34,13 @@ from ibllib.oneibl.registration import IBLRegistrationClient
 from iblrig import net, path_helper, sound
 from iblrig.constants import BASE_PATH, BONSAI_EXE, PYSPIN_AVAILABLE
 from iblrig.frame2ttl import Frame2TTL
-from iblrig.hardware import DTYPE_AMBIENT_SENSOR_BIN, SOFTCODE, Bpod, RotaryEncoderModule, sound_device_factory
+from iblrig.hardware import SOFTCODE, Bpod, RotaryEncoderModule, sound_device_factory
 from iblrig.hifi import HiFi
 from iblrig.path_helper import load_pydantic_yaml
 from iblrig.pydantic_definitions import HardwareSettings, RigSettings, TrialDataModel
 from iblrig.tools import call_bonsai, get_number
 from iblrig.transfer_experiments import BehaviorCopier, VideoCopier
 from iblrig.valve import Valve
-from iblutil.io import binary
 from iblutil.io.net.base import ExpMessage
 from iblutil.spacer import Spacer
 from iblutil.util import Bunch, flatten, setup_logger
@@ -60,29 +58,20 @@ class HasBpod(Protocol):
 
 
 class BaseSession(ABC):
-    """
-    Abstract base class for all sessions.
-
-    This class defines the common interface and shared logic for sessions,
-    including session initialization, hardware management, Alyx registration,
-    and mixin execution. Subclasses should implement the abstract methods to
-    define task-specific behavior and hardware startup.
-    """
-
-    version: str | None = None
-    """Task version string."""
+    version = None
+    """str: !!CURRENTLY UNUSED!! task version string."""
     # protocol_name: str | None = None
-    # """The name of the task protocol (NB: avoid spaces)."""
+    """str: The name of the task protocol (NB: avoid spaces)."""
     base_parameters_file: Path | None = None
     """Path: A YAML file containing base, default task parameters."""
-    is_mock: bool = False
-    """Wether the session is a mock session."""
-    logger: logging.Logger | None = None
-    """Logger instance used solely to keep track of log level passed to constructor."""
+    is_mock = False
+    """list of str: One or more ibllib.pipes.tasks.Task names for task extraction."""
+    logger: logging.Logger = None
+    """logging.Logger: Log instance used solely to keep track of log level passed to constructor."""
     experiment_description: dict = {}
-    """The experiment description."""
+    """dict: The experiment description."""
     extractor_tasks: list | None = None
-    """An optional list of pipeline task class names to instantiate when preprocessing task data."""
+    """list of str: An optional list of pipeline task class names to instantiate when preprocessing task data."""
 
     TrialDataModel: type[TrialDataModel]
 
@@ -92,10 +81,10 @@ class BaseSession(ABC):
 
     def __init__(
         self,
-        subject: str,
-        task_parameter_file: str | Path | None = None,
-        file_hardware_settings: str | Path | None = None,
-        hardware_settings: dict | None | HardwareSettings = None,
+        subject=None,
+        task_parameter_file=None,
+        file_hardware_settings=None,
+        hardware_settings: HardwareSettings = None,
         file_iblrig_settings=None,
         iblrig_settings: RigSettings = None,
         one=None,
@@ -110,34 +99,19 @@ class BaseSession(ABC):
         **kwargs,
     ):
         """
-        Parameters
-        ----------
-        subject : str
-            The subject nickname. Required.
-        task_parameter_file : str or Path, optional
-            An optional path to the task_parameters.yaml file.
-        file_hardware_settings : str or Path, optional
-            Name of the hardware file in the settings folder, or full file path.
-        hardware_settings : dict, optional
-            An optional dictionary of hardware settings. Keys will override any keys in the file.
-        file_iblrig_settings : str or Path, optional
-            Name of the iblrig file in the settings folder, or full file path.
-        iblrig_settings : dict, optional
-            An optional dictionary of iblrig settings. Keys will override any keys in the file.
-        one : ONE, optional
-            An optional instance of ONE.
-        interactive : bool, optional
-            If True, enables interactive mode.
-        projects : list, optional
-            An optional list of Alyx protocols.
-        procedures : list, optional
-            An optional list of Alyx procedures.
-        subject_weight_grams : float, optional
-            Weight of the subject in grams.
-        stub : str or Path, optional
-            A full path to an experiment description file containing experiment information.
-        append : bool, optional
-            If True, append to the latest existing session of the same subject for the same day.
+        :param subject: The subject nickname. Required.
+        :param task_parameter_file: an optional path to the task_parameters.yaml file
+        :param file_hardware_settings: name of the hardware file in the settings folder, or full file path
+        :param hardware_settings: an optional dictionary of hardware settings. Keys will override any keys in the file
+        :param file_iblrig_settings: name of the iblrig file in the settings folder, or full file path
+        :param iblrig_settings: an optional dictionary of iblrig settings. Keys will override any keys in the file
+        :param one: an optional instance of ONE
+        :param interactive:
+        :param projects: An optional list of Alyx protocols.
+        :param procedures: An optional list of Alyx procedures.
+        :param subject_weight_grams: weight of the subject
+        :param stub: A full path to an experiment description file containing experiment information.
+        :param append: bool, if True, append to the latest existing session of the same subject for the same day
         """
         self.extractor_tasks = getattr(self, 'extractor_tasks', None)
         self._logger = None
@@ -156,12 +130,15 @@ class BaseSession(ABC):
         self.init_datetime = datetime.datetime.now()
 
         # loads in the settings: first load the files, then update with the input argument if provided
-        self._load_settings(
-            file_hardware_settings=file_hardware_settings,
-            hardware_settings=hardware_settings,
-            file_iblrig_settings=file_iblrig_settings,
-            iblrig_settings=iblrig_settings,
-        )
+        self.hardware_settings: HardwareSettings = load_pydantic_yaml(HardwareSettings, file_hardware_settings)
+        if hardware_settings is not None:
+            self.hardware_settings.update(hardware_settings)
+            HardwareSettings.model_validate(self.hardware_settings)
+        self.iblrig_settings: RigSettings = load_pydantic_yaml(RigSettings, file_iblrig_settings)
+        if iblrig_settings is not None:
+            self.iblrig_settings.update(iblrig_settings)
+            RigSettings.model_validate(self.iblrig_settings)
+
         self.wizard = wizard
 
         # Load the tasks settings, from the task folder or override with the input argument
@@ -196,38 +173,6 @@ class BaseSession(ABC):
             stub,
             extractors=self.extractor_tasks,
         )
-
-    def _sigint_handler(self, signum: int, frame: types.FrameType | None):
-        """
-        Handle SIGINT (Ctrl+C) signal to gracefully stop the session.
-
-        Parameters
-        ----------
-        signum : int
-            The signal number.
-        frame : signal.FrameType or None
-            The current stack frame.
-        """
-        log.critical('SIGINT received, will exit at the end of the trial')
-        if getattr(self, 'paths', False) and (session_folder := self.paths.get('SESSION_FOLDER', None)):
-            session_folder.joinpath('.stop').touch()
-
-    def _load_settings(
-        self,
-        file_hardware_settings: Path | str | None = None,
-        hardware_settings: dict | None = None,
-        file_iblrig_settings: Path | str | None = None,
-        iblrig_settings: dict | None = None,
-        **_,
-    ):
-        self.hardware_settings: HardwareSettings = load_pydantic_yaml(HardwareSettings, file_hardware_settings)
-        if hardware_settings is not None:
-            self.hardware_settings.update(hardware_settings)
-            HardwareSettings.model_validate(self.hardware_settings)
-        self.iblrig_settings: RigSettings = load_pydantic_yaml(RigSettings, file_iblrig_settings)
-        if iblrig_settings is not None:
-            self.iblrig_settings.update(iblrig_settings)
-            RigSettings.model_validate(self.iblrig_settings)
 
     @classmethod
     def get_task_file(cls) -> Path:
@@ -324,8 +269,6 @@ class BaseSession(ABC):
                 `C:\iblrigv8_data\mainenlab\Subjects\SWC_043\2019-01-01\001\raw_task_data_00`
             *   DATA_FILE_PATH: contains the bpod trials
                 `C:\iblrigv8_data\mainenlab\Subjects\SWC_043\2019-01-01\001\raw_task_data_00\_iblrig_taskData.raw.jsonable`
-            *   AMBIENT_FILE_PATH: contains the ambient sensor data
-                `C:\iblrigv8_data\mainenlab\Subjects\SWC_043\2019-01-01\001\raw_task_data_00\_iblrig_ambientSensorData.raw.bin`
             *   SETTINGS_FILE_PATH: contains the task settings
                 `C:\iblrigv8_data\mainenlab\Subjects\SWC_043\2019-01-01\001\raw_task_data_00\_iblrig_taskSettings.raw.json`
         """
@@ -367,7 +310,6 @@ class BaseSession(ABC):
         self.session_info.SESSION_NUMBER = int(paths.SESSION_FOLDER.name)
         paths.SESSION_RAW_DATA_FOLDER = paths.SESSION_FOLDER.joinpath(paths.TASK_COLLECTION)
         paths.DATA_FILE_PATH = paths.SESSION_RAW_DATA_FOLDER.joinpath('_iblrig_taskData.raw.jsonable')
-        paths.AMBIENT_FILE_PATH = paths.SESSION_RAW_DATA_FOLDER.joinpath('_iblrig_ambientSensorData.raw.bin')
         paths.SETTINGS_FILE_PATH = paths.SESSION_RAW_DATA_FOLDER.joinpath('_iblrig_taskSettings.raw.json')
         return paths
 
@@ -489,8 +431,6 @@ class BaseSession(ABC):
         }
         with contextlib.suppress(importlib.metadata.PackageNotFoundError):
             patch_dict['PROJECT_EXTRACTION_VERSION'] = importlib.metadata.version('project_extraction')
-        if self.version is not None:
-            patch_dict['TASK_VERSION'] = self.version
         output_dict.update(patch_dict)
         return output_dict
 
@@ -514,7 +454,7 @@ class BaseSession(ABC):
         return json_file  # PosixPath
 
     @final
-    def save_trial_data_to_json(self, bpod_data: dict, validate: bool = True):
+    def save_trial_data_to_json(self, bpod_data: dict):
         """Validate and save trial data.
 
         This method retrieve's the current trial's data from the trial_table and validates it using a Pydantic model
@@ -525,23 +465,20 @@ class BaseSession(ABC):
         ----------
         bpod_data : dict
             Trial data returned from pybpod.
-        validate : bool, optional
-            Validate trial's data using Pydantic model. Default: True.
         """
         # get trial's data as a dict
         trial_data = self.trials_table.iloc[self.trial_num].to_dict()
 
-        if validate:
-            # warn about entries not covered by pydantic model
-            if trial_data.get('trial_num', 1) == 0:
-                for key in set(trial_data.keys()) - set(self.TrialDataModel.model_fields) - {'index'}:
-                    log.warning(
-                        f'Key "{key}" in trial_data is missing from TrialDataModel - '
-                        f'its value ({trial_data[key]}) will not be validated.'
-                    )
+        # warn about entries not covered by pydantic model
+        if trial_data.get('trial_num', 1) == 0:
+            for key in set(trial_data.keys()) - set(self.TrialDataModel.model_fields) - {'index'}:
+                log.warning(
+                    f'Key "{key}" in trial_data is missing from TrialDataModel - '
+                    f'its value ({trial_data[key]}) will not be validated.'
+                )
 
-            # validate by passing through pydantic model
-            trial_data = self.TrialDataModel.model_validate(trial_data).model_dump()
+        # validate by passing through pydantic model
+        trial_data = self.TrialDataModel.model_validate(trial_data).model_dump()
 
         # add bpod_data as 'behavior_data'
         trial_data['behavior_data'] = bpod_data
@@ -549,7 +486,6 @@ class BaseSession(ABC):
         # write json data to file
         with open(self.paths['DATA_FILE_PATH'], 'a') as fp:
             fp.write(json.dumps(trial_data) + '\n')
-        log.debug(f'Trial data dumped to `{self.paths["DATA_FILE_PATH"].name}`')
 
     @property
     def one(self):
@@ -558,8 +494,8 @@ class BaseSession(ABC):
             if self.iblrig_settings['ALYX_URL'] is None:
                 return
             info_str = (
-                f'alyx client with user name {self.iblrig_settings["ALYX_USER"]} '
-                + f'and url: {self.iblrig_settings["ALYX_URL"]}'
+                f"alyx client with user name {self.iblrig_settings['ALYX_USER']} "
+                + f"and url: {self.iblrig_settings['ALYX_URL']}"
             )
             try:
                 self._one = ONE(
@@ -625,30 +561,26 @@ class BaseSession(ABC):
                     session=ses['url'][-36:],
                     water_type=self.task_params.get('REWARD_TYPE', None),
                 )
-                log.info(f'Water administered registered in Alyx database: {ses["subject"]}, {wa["water_administered"]}mL')
+                log.info(f"Water administered registered in Alyx database: {ses['subject']}, " f"{wa['water_administered']}mL")
         except Exception:
             log.error(traceback.format_exc())
             log.error('Could not register water administration to Alyx')
             return
         return ses
 
-    def _execute_mixins_shared_function(self, pattern: str) -> None:
+    def _execute_mixins_shared_function(self, pattern):
         """
-        Execute all methods of the class whose names start with the specified pattern.
-
-        This method loops through all callable methods of the class that begin with the given pattern and invokes each
-        of them in the order they are found. It is useful for executing a set of related methods that share a common
-        naming convention, such as initialization, starting, stopping, or cleanup routines.
+        Loop over all methods of the class that start with pattern and execute them.
 
         Parameters
         ----------
         pattern : str
-            The prefix pattern to match method names. Only methods whose names start with this pattern will be executed.
-            Examples: 'init_mixin', 'start_mixin', 'stop_mixin', or 'cleanup_mixin'.
+            'init_mixin', 'start_mixin', 'stop_mixin', or 'cleanup_mixin'
         """
-        methods = [getattr(self, m) for m in dir(self) if m.startswith(pattern) and callable(getattr(self, m))]
-        for method in methods:
-            method()
+        method_names = [method for method in dir(self) if method.startswith(pattern)]
+        methods = [getattr(self, method) for method in method_names if inspect.ismethod(getattr(self, method))]
+        for meth in methods:
+            meth()
 
     @property
     def time_elapsed(self):
@@ -682,7 +614,6 @@ class BaseSession(ABC):
         # this prevents from incrementing endlessly the session number if the hardware fails to connect
         self.start_hardware()
         self.create_session()
-
         # When not running the first chained protocol, we can skip the weighing dialog
         first_protocol = int(self.paths.SESSION_RAW_DATA_FOLDER.name.split('_')[-1]) == 0
 
@@ -690,12 +621,17 @@ class BaseSession(ABC):
         if self.session_info.SUBJECT_WEIGHT is None and self.interactive and first_protocol:
             self.session_info.SUBJECT_WEIGHT = get_number('Subject weight (g): ', float, lambda x: x > 0)
 
+        def sigint_handler(*args, **kwargs):
+            # create a signal handler for a graceful exit: create a stop flag in the session folder
+            self.paths.SESSION_FOLDER.joinpath('.stop').touch()
+            log.critical('SIGINT signal detected, will exit at the end of the trial')
+
         # if upon starting there is a flag just remove it, this is to prevent killing a session in the egg
-        self.paths.SESSION_FOLDER.joinpath('.stop').unlink(missing_ok=True)
+        if self.paths.SESSION_FOLDER.joinpath('.stop').exists():
+            self.paths.SESSION_FOLDER.joinpath('.stop').unlink()
 
-        signal.signal(signal.SIGINT, self._sigint_handler)
+        signal.signal(signal.SIGINT, sigint_handler)
         self._run()  # runs the specific task logic i.e. trial loop etc...
-
         # post task instructions
         log.critical('Graceful exit')
         log.info(f'Session {self.paths.SESSION_RAW_DATA_FOLDER}')
@@ -706,9 +642,9 @@ class BaseSession(ABC):
             self.session_info.POOP_COUNT = get_number('Droppings count: ', int, lambda x: x >= 0)
 
         self.save_task_parameters_to_json_file()
+        self.register_to_alyx()
         self._execute_mixins_shared_function('stop_mixin')
         self._execute_mixins_shared_function('cleanup_mixin')
-        self.register_to_alyx()
 
     @abstractmethod
     def start_hardware(self):
@@ -773,7 +709,8 @@ class OSCClient(udp_client.SimpleUDPClient):
         'stim_phase': dict(mess='/h', type=float),
         'contrast': dict(mess='/c', type=float),
         'stim_freq': dict(mess='/f', type=float),
-        'stim_angle': dict(mess='/a', type=float),
+        # 
+        'stim_angle': dict(mess='/a', type=int), # float
         'stim_gain': dict(mess='/g', type=float),
         'stim_sigma': dict(mess='/s', type=float),
         # 'stim_reverse': dict(mess='/r', type=int),  # this is not handled by Bonsai
@@ -870,18 +807,11 @@ class BonsaiRecordingMixin(BaseSession):
         if (workflow_file := self._camera_mixin_bonsai_get_workflow_file(configuration, 'setup')) is None:
             return
 
-        # test acquisition and reset cameras if needed
         # enable trigger of cameras (so Bonsai can disable it again ... sigh)
         if PYSPIN_AVAILABLE:
-            from iblrig import video_pyspin
+            from iblrig.video_pyspin import enable_camera_trigger
 
-            if not video_pyspin.acquisition_ok():
-                video_pyspin.reset_all_cameras()
-            video_pyspin.enable_camera_trigger(True)
-            # with video_pyspin.Cameras() as cameras:
-            #     video_pyspin.enable_camera_trigger(True, cameras)
-            #     video_pyspin.set_line_mode(line=2, mode='Output', camera=cameras)
-            #     video_pyspin.set_line_mode(line=3, mode='Input', camera=cameras)
+            enable_camera_trigger(True)
 
         call_bonsai(workflow_file, wait=True)  # TODO Parameterize using configuration cameras
         log.info('Bonsai cameras setup module loaded: OK')
@@ -1019,17 +949,12 @@ class BpodMixin(BaseSession):
     def stop_mixin_bpod(self):
         self.bpod.close()
 
-        # convert ambient data from binary to parquet
-        if self.paths['AMBIENT_FILE_PATH'].exists():
-            pqt_file = binary.convert_to_parquet(
-                filepath_bin=self.paths['AMBIENT_FILE_PATH'], dtype=DTYPE_AMBIENT_SENSOR_BIN, delete_bin_file=True
-            )
-            log.info(f"'{self.paths['AMBIENT_FILE_PATH'].name}' converted to parqet and stored as '{pqt_file.name}'")
-
     def start_mixin_bpod(self):
         if self.hardware_settings['device_bpod']['COM_BPOD'] is None:
             raise ValueError(
-                'The value for device_bpod:COM_BPOD in settings/hardware_settings.yaml is null. Please provide a valid port name.'
+                'The value for device_bpod:COM_BPOD in '
+                'settings/hardware_settings.yaml is null. Please '
+                'provide a valid port name.'
             )
         disabled_ports = [x - 1 for x in self.hardware_settings['device_bpod']['DISABLE_BEHAVIOR_INPUT_PORTS']]
         self.bpod = Bpod(self.hardware_settings['device_bpod']['COM_BPOD'], disable_behavior_ports=disabled_ports)
@@ -1217,14 +1142,14 @@ class SoundMixin(BaseSession, HasBpod):
                 )
             case _:
                 self.bpod.define_xonar_sounds_actions()
-        log.info(f'Sound module loaded: OK: {self.hardware_settings.device_sound["OUTPUT"]}')
+        log.info(f"Sound module loaded: OK: {self.hardware_settings.device_sound['OUTPUT']}")
 
     def sound_play_noise(self, state_timer=0.510, state_name='play_noise'):
         """
         Play the noise sound for the error feedback using bpod state machine.
         :return: bpod current trial export
         """
-        return self._sound_play(state_name=state_name, output_actions=[self.bpod.actions.play_noise], state_timer=state_timer)
+        return self._sound_play(state_name=state_name, output_actions=[self.bpod.actions.play_tone], state_timer=state_timer)
 
     def sound_play_tone(self, state_timer=0.102, state_name='play_tone'):
         """
@@ -1244,7 +1169,7 @@ class SoundMixin(BaseSession, HasBpod):
         sma.add_state(
             state_name=state_name,
             state_timer=state_timer,
-            output_actions=output_actions,
+            output_actions=[self.bpod.actions.play_tone],
             state_change_conditions={'BNC2Low': 'exit', 'Tup': 'exit'},
         )
         self.bpod.send_state_machine(sma)
@@ -1286,8 +1211,7 @@ class NetworkSession(BaseSession):
         if isinstance(remote_rigs, list):
             # For now we flatten to list of remote rig names but could permit list of (name, URI) tuples
             remote_rigs = list(filter(None, flatten(remote_rigs)))
-            self._load_settings(**kwargs)
-            all_remote_rigs = net.get_remote_devices(iblrig_settings=self.iblrig_settings)
+            all_remote_rigs = net.get_remote_devices(iblrig_settings=kwargs.get('iblrig_settings'))
             if not set(remote_rigs).issubset(all_remote_rigs.keys()):
                 raise ValueError('Selected remote rigs not in remote rigs list')
             remote_rigs = {k: v for k, v in all_remote_rigs.items() if k in remote_rigs}
@@ -1296,7 +1220,6 @@ class NetworkSession(BaseSession):
         self.exp_ref = {}
         try:
             super().__init__(**kwargs)
-            self.session_info['REMOTE_RIGS'] = remote_rigs
         except Exception as ex:
             self.cleanup_mixin_network()
             raise ex
@@ -1314,7 +1237,7 @@ class NetworkSession(BaseSession):
             An instance of ONE.
         """
         if super().one is None:
-            self._one = OneAlyx(silent=True)
+            self._one = OneAlyx(silent=True, mode='local')
         return self._one
 
     def connect(self, remote_rigs):
@@ -1331,10 +1254,6 @@ class NetworkSession(BaseSession):
         """
         self.remote_rigs = net.Auxiliaries(remote_rigs or {})
         assert not remote_rigs or self.remote_rigs.is_connected
-        # For the UCL ScanImage computer the low input buffer can lead to truncated messages.
-        # Here we hard-code the buffer size so that truncated echo messages are handled correctly
-        if self.remote_rigs.services and (service := self.remote_rigs.services.get('expcontrol')):
-            service.max_message_size = 4096
         # Handle termination event by graciously completing thread
         signal.signal(signal.SIGTERM, lambda sig, frame: self.cleanup_mixin_network())
 
@@ -1380,40 +1299,17 @@ class NetworkSession(BaseSession):
         assert self.exp_ref
         paths.SESSION_FOLDER = date_folder / f'{self.exp_ref["sequence"]:03}'
         paths.TASK_COLLECTION = iblrig.path_helper.iterate_collection(paths.SESSION_FOLDER)
-        # if append == paths.TASK_COLLECTION.endswith('00'):
-        #     raise ValueError(
-        #         f'Append value incorrect. Either remove previous task collections from '
-        #         f'{paths.SESSION_FOLDER}, or select append in GUI (--append arg in cli)'
-        #     )
-        log.critical('This is task number %i for %s', int(paths.TASK_COLLECTION.split('_')[-1]) + 1, self.exp_ref)
+        if append == paths.TASK_COLLECTION.endswith('00'):
+            raise ValueError(
+                f'Append value incorrect. Either remove previous task collections from '
+                f'{paths.SESSION_FOLDER}, or select append in GUI (--append arg in cli)'
+            )
 
         paths.SESSION_RAW_DATA_FOLDER = paths.SESSION_FOLDER.joinpath(paths.TASK_COLLECTION)
         paths.DATA_FILE_PATH = paths.SESSION_RAW_DATA_FOLDER.joinpath('_iblrig_taskData.raw.jsonable')
-        paths.AMBIENT_FILE_PATH = paths.SESSION_RAW_DATA_FOLDER.joinpath('_iblrig_ambientSensorData.raw.bin')
         paths.SETTINGS_FILE_PATH = paths.SESSION_RAW_DATA_FOLDER.joinpath('_iblrig_taskSettings.raw.json')
         self.session_info.SESSION_NUMBER = int(paths.SESSION_FOLDER.name)
         return paths
-
-    @staticmethod
-    def extra_parser():
-        """
-        Parse network arguments.
-
-        Namely adds the remote argument to the parser.
-
-        :return: argparse.parser()
-        """
-        parser = super(NetworkSession, NetworkSession).extra_parser()
-        parser.add_argument(
-            '--remote',
-            dest='remote_rigs',
-            type=str,
-            required=False,
-            action='append',
-            nargs='+',
-            help='specify one of the remote rigs to interact with over the network',
-        )
-        return parser
 
     def run(self):
         """Run session and report exceptions to remote services."""
@@ -1427,7 +1323,7 @@ class NetworkSession(BaseSession):
                 details = {
                     'error': e.__class__.__name__,  # exception name str
                     'message': str(e),  # error str
-                    'traceback': traceback.format_exc(limit=2),  # stack str
+                    'traceback': traceback.format_exc(),  # stack str
                     'file': tb.tb_frame.f_code.co_filename,  # filename str
                     'line_no': (tb.tb_lineno, tb.tb_lasti),  # (int, int)
                 }
@@ -1506,7 +1402,6 @@ class NetworkSession(BaseSession):
                 f'Running past or future sessions not currently supported. \n'
                 f'Please check the system date time settings on each rig.'
             )
-        # TODO How to handle folder already existing before running UDP experiment?
 
         # exp_ref = ConversionMixin.path2ref(self.paths['SESSION_FOLDER'], as_dict=False)
         exp_ref = self.one.dict2ref(self.exp_ref)
@@ -1533,12 +1428,9 @@ class NetworkSession(BaseSession):
 
     def cleanup_mixin_network(self):
         """Clean up services."""
-        log.info('Cleaning up network mixin')
         self.remote_rigs.close()
         if self.remote_rigs.is_connected:
             log.warning('Failed to properly clean up network mixin')
-        else:
-            log.info('Cleaned up network mixin')
 
 
 class SpontaneousSession(BaseSession):
@@ -1565,14 +1457,3 @@ class SpontaneousSession(BaseSession):
             if self.paths.SESSION_FOLDER.joinpath('.stop').exists():
                 self.paths.SESSION_FOLDER.joinpath('.stop').unlink()
                 break
-
-
-class SpontaneousBpodSession(SpontaneousSession, BpodMixin):
-    """
-    Like SpontaneousSession but with the BpodMixin added in.
-
-    This ensures that the Bpod spacers will be generated when starting the task.
-    """
-
-    def start_hardware(self) -> None:
-        self.start_mixin_bpod()

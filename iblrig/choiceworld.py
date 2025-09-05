@@ -7,8 +7,6 @@ import logging
 from typing import Literal
 
 import numpy as np
-import numpy.typing as npt
-import pandas as pd
 
 import iblrig.raw_data_loaders
 from iblrig.path_helper import iterate_previous_sessions
@@ -103,8 +101,6 @@ def get_subject_training_info(
                 f'(training phase: {training_info["training_phase"]}, adaptive reward: '
                 f'{training_info["adaptive_reward"]}, adaptive gain: {training_info["adaptive_gain"]})'
             )
-            log.warning("This is to be expected if the subject hasn't been trained before.")
-            log.warning('ATTENTION: If the subject *has* been trained before, it could be regressing in training phase!')
             return training_info, None
         else:
             raise ValueError(f'The training status for {subject_name} could not be determined as no previous sessions were found')
@@ -148,8 +144,6 @@ def training_contrasts_probabilities(phase=1):
             frequencies = np.abs(CONTRASTS) >= 0
         case 5:  # The 50% contrast is removed from the set
             frequencies = np.abs(CONTRASTS) != 0.5
-        case _:
-            raise ValueError(f'{phase} is not a valid value for training phase')
     return frequencies / np.sum(frequencies)
 
 
@@ -163,28 +157,10 @@ def contrasts_set(phase: int) -> np.array:
     return CONTRASTS[probabilities > 0]
 
 
-def training_phase_from_contrast_set(contrast_set: npt.ArrayLike) -> int:
-    contrast_set = np.unique(np.abs(contrast_set)).astype(float)
-    contrast_mask = CONTRASTS >= 0
+def training_phase_from_contrast_set(contrast_set: list[float]) -> int | None:
+    contrast_set = sorted(contrast_set)
     for phase in range(6):
-        expected_set = CONTRASTS[np.logical_and(training_contrasts_probabilities(phase) > 0, contrast_mask)]
+        expected_set = CONTRASTS[np.logical_and(training_contrasts_probabilities(phase) > 0, CONTRASTS >= 0)]
         if np.array_equal(contrast_set, expected_set):
             return phase
-    raise ValueError(f'Could not determine training phase from contrast set {contrast_set}')
-
-
-def compute_performance(
-    trials_table: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Aggregates performance metrics for each signed contrast in the table
-    :param trials_data:
-    :return:
-    """
-    trials_table = trials_table.loc[trials_table.position.notna(), :].copy()
-    trials_table['signed_contrast'] = trials_table['contrast'] * np.sign(trials_table['position'])
-    df_performance = trials_table.groupby(['signed_contrast']).agg(
-        last_50_perf=pd.NamedAgg(column='trial_correct', aggfunc=lambda x: np.sum(x[np.maximum(-50, -x.size) :]) / 50),
-        ntrials=pd.NamedAgg(column='trial_correct', aggfunc='count'),
-    )
-    return df_performance
+    raise Exception(f'Could not determine training phase from contrast set {contrast_set}')

@@ -3,7 +3,6 @@
 import asyncio
 import tempfile
 import unittest
-from functools import partial
 from pathlib import Path
 from unittest.mock import ANY, Mock, patch
 
@@ -11,12 +10,8 @@ import yaml
 
 import iblrig.net
 import one.params
-from ibllib.tests import TEST_DB
-from iblrig.test.base import get_file
 from iblutil.io import net
 from one.api import One, OneAlyx
-
-TEST_ALYX_URL = TEST_DB['base_url']
 
 
 class TestRemoteDeviceFunctions(unittest.IsolatedAsyncioTestCase):
@@ -112,15 +107,11 @@ class TestTokenCallbacks(unittest.TestCase):
 
     def test_update_alyx_token(self):
         """Test update_alyx_token function."""
-        one_temp_dir = tempfile.TemporaryDirectory()
-        with patch('one.params.iopar.getfile', new=partial(get_file, one_temp_dir.name)):
-            one = OneAlyx(base_url='https://localhost:8000', silent=True, mode='local')
+        one = OneAlyx(base_url='https://localhost:8000', silent=True, mode='local')
         one.alyx.logout()
         assert not one.alyx.is_logged_in
-        token = (TEST_ALYX_URL, {'j.doe': {'token': '123tok3n321'}})
-
-        with patch('one.params.iopar.getfile', new=partial(get_file, one_temp_dir.name)):
-            success = iblrig.net.update_alyx_token(token, ('localhost', 11001), one=one)
+        token = ('https://test.alyx.internationalbrainlab.org', {'j.doe': {'token': '123tok3n321'}})
+        success = iblrig.net.update_alyx_token(token, ('localhost', 11001), one=one)
         self.assertTrue(success)
         self.assertTrue(one.alyx.is_logged_in)
         self.assertEqual('j.doe', one.alyx.user)
@@ -130,14 +121,11 @@ class TestTokenCallbacks(unittest.TestCase):
 
         one.alyx.logout()
         assert not one.alyx.is_logged_in
-        with patch('one.params.iopar.getfile', new=partial(get_file, one_temp_dir.name)):
-            success = iblrig.net.update_alyx_token(token, ('localhost', 11001))
+        success = iblrig.net.update_alyx_token(token, ('localhost', 11001))
         self.assertFalse(success)
-        with patch('one.params.iopar.getfile', new=partial(get_file, one_temp_dir.name)):
-            success = iblrig.net.update_alyx_token(token, ('localhost', 11001), one=One())
+        success = iblrig.net.update_alyx_token(token, ('localhost', 11001), one=One())
         self.assertFalse(success)
-        with patch('one.params.iopar.getfile', new=partial(get_file, one_temp_dir.name)):
-            success = iblrig.net.update_alyx_token((TEST_ALYX_URL, {}), ('localhost', 11001), one=one)
+        success = iblrig.net.update_alyx_token(('https://test.alyx.internationalbrainlab.org', {}), ('localhost', 11001), one=one)
         self.assertFalse(success)
 
     @patch('iblutil.io.params.getfile')
@@ -148,8 +136,7 @@ class TestTokenCallbacks(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             getfile.side_effect = Path(tmp).joinpath
-            with tempfile.TemporaryDirectory() as temp_dir, patch('one.params.CACHE_DIR_DEFAULT', temp_dir):
-                is_new_user = iblrig.net.install_alyx_token(base_url, token)
+            is_new_user = iblrig.net.install_alyx_token(base_url, token)
             self.assertTrue(is_new_user)
             par = one.params.get(base_url)
             self.assertEqual(token, par.TOKEN)
@@ -164,18 +151,8 @@ class TestAuxiliaries(unittest.IsolatedAsyncioTestCase):
     @patch('iblrig.net.net.app.EchoProtocol.client')
     @patch('iblrig.net.net.app.Services', spec=net.app.Services)
     def setUp(self, services, com):
-        """Set up test.
-
-        The EchoProtocol mock objects are not directly used as the Services object is mocked,
-        however EchoProtocol is instantiated by Auxiliaries before passing to the Services object.
-        """
         self.services, self.com = services, com
         self.clients = {'rig_1': 'udp://192.168.0.1', 'rig_2': 'udp://192.168.0.2'}
-        # For the services to appear connected, the length must be > 0 and the iterator must evaluate True
-        self.services().__iter__.side_effect = (iter([]), iter([True]))  # first check should evaluate False
-        self.services().__len__.side_effect = lambda: len(self.clients) if self.services.call_count > 0 else 0
-        self.services().is_connected = True
-        self.services.reset_mock(return_value=False, side_effect=False)  # reset call count
         self.aux = iblrig.net.Auxiliaries(self.clients)
         self.addCleanup(self.aux.close)  # ensure threads joined
         assert getattr(self.aux, 'connected', False)

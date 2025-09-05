@@ -10,18 +10,16 @@ import sys
 import traceback
 from collections import OrderedDict
 from dataclasses import dataclass
-from importlib.metadata import entry_points
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-import psutil
 import pyqtgraph as pg
 from pydantic import ValidationError
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QThreadPool, pyqtSlot
 from PyQt5.QtWidgets import QStyle
 from requests import HTTPError
-from serial import Serial, SerialException
+from serial import SerialException
 from typing_extensions import override
 
 import iblrig.hardware_validation
@@ -62,6 +60,7 @@ try:
     CUSTOM_TASKS = True
 except ImportError:
     CUSTOM_TASKS = False
+    pass
 
 log = logging.getLogger(__name__)
 pg.setConfigOption('foreground', 'k')
@@ -132,11 +131,6 @@ class RigWizardModel:
         if CUSTOM_TASKS:
             tasks.extend(sorted([p for p in Path(iblrig_custom_tasks.__file__).parent.rglob('task.py')]))
         self.all_tasks = OrderedDict({p.parts[-2]: p for p in tasks})
-
-        # include external tasks registered as plugins
-        for plugin in sorted(entry_points(group='iblrig.plugins'), key=lambda ep: ep.name):
-            if plugin.name.startswith('task_') and issubclass(session := plugin.load(), BaseSession):
-                self.all_tasks[session.protocol_name] = session.get_task_file()
 
         # get the subjects from iterating over folders in the the iblrig data path
         if self.iblrig_settings['iblrig_local_data_path'] is None:
@@ -254,13 +248,10 @@ class RigWizardModel:
                 )
             QtWidgets.QMessageBox().critical(None, 'Error', f'{message}\n\n{solution}')
 
-        # get subjects from Alyx: this is the set of subjects that are alive and in the lab defined in settings
-        # stock subjects are excluded, unless the user is stock manager
-        kwargs = {'alive': True, 'lab': self.iblrig_settings['ALYX_LAB'], 'no_cache': True}
-        is_stock_manager = any(self.alyx.rest('subjects', 'list', responsible_user=self.user, stock=True, limit=1, **kwargs))
-        if not is_stock_manager:
-            kwargs['stock'] = False
-        rest_subjects = self.alyx.rest('subjects', 'list', **kwargs)
+        # get subjects from Alyx: this is the set of subjects that are alive and not stock in the lab defined in settings
+        rest_subjects = self.alyx.rest(
+            'subjects', 'list', alive=True, stock=False, lab=self.iblrig_settings['ALYX_LAB'], no_cache=True
+        )
         self.all_subjects.remove(self.test_subject_name)
         self.all_subjects = [self.test_subject_name] + sorted(set(self.all_subjects + [s['nickname'] for s in rest_subjects]))
 
@@ -434,12 +425,12 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
             msg_box.setWindowTitle('IBLRIG System Validation')
             msg_box.setIcon(QtWidgets.QMessageBox().Warning)
             msg_box.setTextFormat(QtCore.Qt.TextFormat.RichText)
-            text = f'The following issue{"s were" if len(results) > 1 else " was"} detected:'
+            text = f"The following issue{'s were' if len(results) > 1 else ' was'} detected:"
             for result in results:
                 text = (
-                    text + f'<br><br>\n'
-                    f'<b>{"Warning" if result.status == Status.WARN else "Failure"}:</b> {result.message}<br>\n'
-                    f'{("<b>Suggestion:</b> " + result.solution) if result.solution is not None else ""}'
+                    text + f"<br><br>\n"
+                    f"<b>{'Warning' if result.status == Status.WARN else 'Failure'}:</b> {result.message}<br>\n"
+                    f"{('<b>Suggestion:</b> ' + result.solution) if result.solution is not None else ''}"
                 )
             text = text + '<br><br>\nPlease refer to the System Validation tool for more details.'
             msg_box.setText(text)
@@ -577,7 +568,10 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
         box.setModal(False)
         box.setWindowTitle('Training Level')
         box.setText(
-            f'{session_path}\n\ntraining phase:\t{training_phase}\nreward:\t{reward_amount:.2f} uL\nstimulus gain:\t{stim_gain}'
+            f'{session_path}\n\n'
+            f'training phase:\t{training_phase}\n'
+            f'reward:\t{reward_amount:.2f} uL\n'
+            f'stimulus gain:\t{stim_gain}'
         )
         if self.uiComboTask.currentText() == '_iblrig_tasks_trainingChoiceWorld':
             box.setStandardButtons(QtWidgets.QMessageBox.Apply | QtWidgets.QMessageBox.Close)
@@ -868,9 +862,9 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
                     widget.setMinimum(0)
                     widget.setMaximum(11)
 
-                case 'delay_mins':
-                    label = 'Initial Delay, min'
-                    widget.setMaximum(60)
+                case 'delay_secs':
+                    label = 'Initial Delay, s'
+                    widget.setMaximum(86400)
 
                 case 'training_phase':
                     widget.setSpecialValueText('automatic')
@@ -1015,7 +1009,8 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
                 task = EmptySession(subject=self.model.subject, append=self.append_session, interactive=False)
                 logging.disable(logging.NOTSET)
                 self.model.session_folder = task.paths['SESSION_FOLDER']
-                self.model.session_folder.joinpath('.stop').unlink(missing_ok=True)
+                if self.model.session_folder.joinpath('.stop').exists():
+                    self.model.session_folder.joinpath('.stop').unlink()
                 self.model.raw_data_folder = task.paths['SESSION_RAW_DATA_FOLDER']
 
                 # disable Bpod status LED
@@ -1120,7 +1115,6 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
     def _on_task_finished(self, exit_code, exit_status):
         self.tabLog.appendText('\nSubprocess finished.', 'White')
         if exit_code:
-            self._cleanup_failed_session()
             msg_box = QtWidgets.QMessageBox(parent=self)
             msg_box.setWindowTitle('Oh no!')
             msg_box.setText('The task was terminated with an error.\nPlease check the log for details.')
@@ -1152,9 +1146,9 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
                 answer = QtWidgets.QMessageBox.question(
                     self,
                     'Is this a dud?',
-                    f'The session consisted of only {ntrials:d} trial'
-                    f'{"s" if ntrials > 1 else ""} and appears to be a dud.\n\n'
-                    f'Should it be deleted?',
+                    f"The session consisted of only {ntrials:d} trial"
+                    f"{'s' if ntrials > 1 else ''} and appears to be a dud.\n\n"
+                    f"Should it be deleted?",
                 )
                 if answer == QtWidgets.QMessageBox.Yes:
                     shutil.rmtree(self.model.session_folder)
@@ -1175,41 +1169,6 @@ class RigWizard(QtWidgets.QMainWindow, Ui_wizard):
             session_data['POOP_COUNT'] = droppings
             with open(task_settings_file, 'w') as fid:
                 json.dump(session_data, fid, indent=4, sort_keys=True, default=str)
-
-    def _cleanup_failed_session(self):
-        """
-        Cleans up any failed sessions by terminating rogue Bonsai processes and
-        stopping the running state machine.
-
-        This method performs the following actions:
-        1. Identifies and terminates any rogue instances of the Bonsai application
-           (Bonsai.exe) that are not associated with a parent process.
-        2. If any rogue processes are found, it attempts to gracefully terminate them
-           and logs the termination status. If a process does not terminate within
-           the specified timeout, it forcefully kills the process.
-        3. Terminates the running state machine associated with the specified
-           hardware settings by sending a termination command via the serial
-           interface.
-        """
-        # kill rogue Bonsai processes
-        p_bonsai = [p for p in psutil.process_iter(['name']) if p.info['name'] == 'Bonsai.exe' and p.parent() is None]
-        if len(p_bonsai) > 0:
-            log.warning('Terminating rogue Bonsai processes ...')
-            for proc in p_bonsai:
-                try:
-                    proc.terminate()  # Gracefully terminate the process
-                    proc.wait(timeout=2)
-                    log.info('Terminated %s (PID %d)', proc.info['name'], proc.pid)
-                except psutil.TimeoutExpired:
-                    print('Killing %s (PID %d)', proc.info['name'], proc.pid)
-                    proc.kill()
-
-        # terminate running state machine
-        if Serial(self.hardware_settings['device_bpod']['COM_BPOD']) is not None:
-            log.warning('Killing State Machine ...')
-            with Serial(self.hardware_settings['device_bpod']['COM_BPOD']) as ser:
-                ser.write(b'X')
-                ser.reset_input_buffer()
 
     def flush(self):
         # paint button blue when in toggled state

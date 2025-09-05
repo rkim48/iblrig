@@ -217,7 +217,6 @@ def get_biased_probs(n: int, idx: int = -1, p_idx: float = 0.5) -> list[float]:
     p[idx] *= p_idx
     return p
 
-
 def draw_contrast(
     contrast_set: list[float],
     probability_type: Literal['skew_zero', 'biased', 'uniform'] = 'biased',
@@ -258,6 +257,21 @@ def draw_contrast(
         return np.random.choice(contrast_set)
     else:
         raise ValueError("Unsupported probability_type. Use 'skew_zero', 'biased', or 'uniform'.")
+
+
+def draw_angle(
+    angle_set: list[float],
+    pmf_dict: dict[float, float] = None
+) -> float:
+    if pmf_dict is None:
+        return np.random.choice(angle_set)
+    else:
+        angles = list(pmf_dict.keys())
+        probs = list(pmf_dict.values())
+        if not np.isclose(sum(probs), 1.0):
+            raise ValueError("Sum of PMF probabilities must be 1.")
+        return np.random.choice(angles, p=probs) 
+
 
 
 def online_std(new_sample: float, new_count: int, old_mean: float, old_std: float) -> tuple[float, float]:

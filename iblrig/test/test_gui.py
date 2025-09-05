@@ -1,13 +1,9 @@
-import tempfile
 import unittest
-from functools import partial
-from pathlib import Path
 from unittest.mock import patch
 
 from ibllib.tests import TEST_DB
 from iblrig.constants import SETTINGS_PATH
 from iblrig.gui.wizard import PROJECTS, RigWizardModel
-from iblrig.test.base import get_file
 from one.webclient import AlyxClient
 
 
@@ -19,9 +15,7 @@ class TestRigWizardModel(unittest.TestCase):
         )
 
     def test_connect(self):
-        one_temp_dir = tempfile.TemporaryDirectory()
-        with patch('one.params.iopar.getfile', new=partial(get_file, one_temp_dir.name)):
-            client = AlyxClient(**TEST_DB, cache_dir=Path(one_temp_dir.name).joinpath('cache'))
+        client = AlyxClient(**TEST_DB)
         original_rest = client.rest
 
         def wrapped(*args, **kwargs):

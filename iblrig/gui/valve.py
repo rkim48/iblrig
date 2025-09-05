@@ -1,7 +1,6 @@
 import logging
 from collections import OrderedDict
 from datetime import date
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pyqtgraph as pg
@@ -15,12 +14,10 @@ from iblrig.gui.tools import Worker
 from iblrig.gui.ui_valve import Ui_valve
 from iblrig.hardware import Bpod
 from iblrig.path_helper import save_pydantic_yaml
+from iblrig.pydantic_definitions import HardwareSettings
 from iblrig.scale import Scale
 from iblrig.valve import Valve, ValveValues
 from pybpodapi.exceptions.bpod_error import BpodErrorException
-
-if TYPE_CHECKING:
-    from iblrig.pydantic_definitions import HardwareSettings
 
 log = logging.getLogger(__name__)
 
@@ -309,7 +306,7 @@ class ValveCalibrationDialog(QtWidgets.QDialog, Ui_valve):
         state = self.pushButtonToggleValve.isChecked()
         self.pushButtonToggleValve.setStyleSheet('QPushButton {background-color: rgb(128, 128, 255);}' if state else '')
         try:
-            self.bpod.open_valve(state=state)
+            self.bpod.open_valve(open=state)
         except (OSError, BpodErrorException):
             self.pushButtonToggleValve.setChecked(False)
             self.pushButtonToggleValve.setStyleSheet('')

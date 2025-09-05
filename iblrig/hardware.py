@@ -30,10 +30,6 @@ from pybpodapi.bpod_modules.bpod_module import BpodModule
 from pybpodapi.state_machine import StateMachine
 
 SOFTCODE = IntEnum('SOFTCODE', ['STOP_SOUND', 'PLAY_TONE', 'PLAY_NOISE', 'TRIGGER_CAMERA'])
-DTYPE_AMBIENT_SENSOR_RAW = np.dtype(
-    [('Temperature_C', np.float32), ('AirPressure_mb', np.float32), ('RelativeHumidity', np.float32)]
-)
-DTYPE_AMBIENT_SENSOR_BIN = np.dtype([('Trial', np.uint16)] + DTYPE_AMBIENT_SENSOR_RAW.descr)
 
 # some annotated types
 Uint8 = Annotated[int, Ge(0), Le(255)]
@@ -181,7 +177,7 @@ class Bpod(BpodIO):
         )
 
     def define_harp_sounds_actions(self, module: BpodModule, go_tone_index: int = 2, noise_index: int = 3) -> None:
-        module_port = f'Serial{module.serial_port if module is not None else ""}'
+        module_port = f"Serial{module.serial_port if module is not None else ''}"
         self.actions.update(
             {
                 'play_tone': (module_port, self._define_message(module, [ord('P'), go_tone_index])),
@@ -193,7 +189,7 @@ class Bpod(BpodIO):
     def define_rotary_encoder_actions(self, module: BpodModule | None = None) -> None:
         if module is None:
             module = self.rotary_encoder
-        module_port = f'Serial{module.serial_port if module is not None else ""}'
+        module_port = f"Serial{module.serial_port if module is not None else ''}"
         self.actions.update(
             {
                 'rotary_encoder_reset': (
@@ -207,36 +203,26 @@ class Bpod(BpodIO):
                 'bonsai_closed_loop': (module_port, self._define_message(module, [ord('#'), 3])),
                 'bonsai_freeze_stim': (module_port, self._define_message(module, [ord('#'), 4])),
                 'bonsai_show_center': (module_port, self._define_message(module, [ord('#'), 5])),
-                'bonsai_freeze_center': (module_port, self._define_message(module, [ord('#'), 9])),
             }
         )
 
-    def get_ambient_sensor_reading(self) -> np.ndarray:
-        """
-        Retrieve ambient sensor readings.
-
-        If the ambient sensor module is not available, returns an array filled with NaN values.
-        Otherwise, retrieves the temperature, air pressure, and relative humidity readings.
-
-        Returns
-        -------
-        np.ndarray
-            A NumPy array containing the sensor readings in the following order:
-
-            - [0] : Temperature in degrees Celsius
-            - [1] : Air pressure in millibars
-            - [2] : Relative humidity in percentage
-        """
+    def get_ambient_sensor_reading(self):
         if self.ambient_module is None:
-            data = np.full(3, np.nan, np.float32)
-        else:
-            self.ambient_module.start_module_relay()
-            self.bpod_modules.module_write(self.ambient_module, 'R')
-            reply = self.bpod_modules.module_read(self.ambient_module, 12)
-            self.ambient_module.stop_module_relay()
-            data = np.frombuffer(bytes(reply), dtype=np.float32).copy()
-            data[1] /= 100
-        return data
+            return {
+                'Temperature_C': np.nan,
+                'AirPressure_mb': np.nan,
+                'RelativeHumidity': np.nan,
+            }
+        self.ambient_module.start_module_relay()
+        self.bpod_modules.module_write(self.ambient_module, 'R')
+        reply = self.bpod_modules.module_read(self.ambient_module, 12)
+        self.ambient_module.stop_module_relay()
+
+        return {
+            'Temperature_C': np.frombuffer(bytes(reply[:4]), np.float32)[0],
+            'AirPressure_mb': np.frombuffer(bytes(reply[4:8]), np.float32)[0] / 100,
+            'RelativeHumidity': np.frombuffer(bytes(reply[8:]), np.float32)[0],
+        }
 
     def flush(self):
         """Flushes valve 1."""
@@ -252,14 +238,14 @@ class Bpod(BpodIO):
             Duration of valve opening in seconds.
         """
         if duration is None:
-            self.open_valve(state=True, valve_number=1)
+            self.open_valve(open=True, valve_number=1)
             input('Press ENTER when done.')
-            self.open_valve(state=False, valve_number=1)
+            self.open_valve(open=False, valve_number=1)
         else:
             self.pulse_valve(open_time_s=duration)
 
-    def open_valve(self, state: bool, valve_number: int = 1):
-        self.manual_override(self.ChannelTypes.OUTPUT, self.ChannelNames.VALVE, valve_number, state)
+    def open_valve(self, open: bool, valve_number: int = 1):
+        self.manual_override(self.ChannelTypes.OUTPUT, self.ChannelNames.VALVE, valve_number, open)
 
     def pulse_valve(self, open_time_s: float, valve: str = 'Valve1'):
         sma = StateMachine(self)
@@ -312,7 +298,7 @@ class Bpod(BpodIO):
                 self._arcom.serial_object.write(command)
                 if self._arcom.read_uint8() == 1:
                     return True
-            except (serial.SerialException, struct.error):
+            except serial.SerialException:
                 pass
             self._arcom.serial_object.reset_input_buffer()
             self._arcom.serial_object.reset_output_buffer()
@@ -384,7 +370,7 @@ class RotaryEncoderModule(PybpodRotaryEncoderModule):
         self.enable_evt_transmission()
 
     def close(self):
-        if getattr(self, 'arcom') is not None:  # noqa: B009
+        if hasattr(self, 'arcom'):
             log.debug(f'Closing serial connection to {self._name} on port {self.settings.COM_ROTARY_ENCODER}')
             super().close()
 
