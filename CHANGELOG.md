@@ -1,6 +1,10 @@
 Changelog
 =========
 
+8.29.1
+------
+* fixed: jitter in Gabor stimulus of passive task
+
 8.29.0
 ------
 * added: GUI settings for changing MAIN_SYNC
