@@ -49,3 +49,5 @@ devices/camera_recordings/*.layout
 *~
 docs/source/api/*
 *.csv#
+
+matlab/lib/*
