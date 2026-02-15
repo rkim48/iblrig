@@ -162,7 +162,15 @@ class RigWizardModel:
         tasks = sorted([p for p in Path(iblrig_tasks.__file__).parent.rglob('task.py')])
         if CUSTOM_TASKS:
             tasks.extend(sorted([p for p in Path(iblrig_custom_tasks.__file__).parent.rglob('task.py')]))
-        self.all_tasks = OrderedDict({p.parts[-2]: p for p in tasks})
+
+        self.all_tasks = OrderedDict()
+        for p in tasks:
+            root = Path(iblrig_tasks.__file__).parent
+            if CUSTOM_TASKS and p.as_posix().startswith(Path(iblrig_custom_tasks.__file__).parent.as_posix()):
+                root = Path(iblrig_custom_tasks.__file__).parent
+            rel_path = p.relative_to(root).parent
+            label = ': '.join(rel_path.parts) if len(rel_path.parts) > 1 else rel_path.name
+            self.all_tasks[label] = p
 
         # get the subjects from iterating over folders in the the iblrig data path
         if self.iblrig_settings['iblrig_local_data_path'] is None:

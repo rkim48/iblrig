@@ -3,6 +3,8 @@ import logging
 from iblrig.base_choice_world import ChoiceWorldSession
 import iblrig.misc
 import numpy as np
+from pathlib import Path
+import csv
 from iblrig import misc
 import math
 import random
@@ -117,23 +119,47 @@ class CustomVisualStimulusMixin(BonsaiVisualStimulusMixin):
         time.sleep(2)
         logger.info('Custom Bonsai visual stimulus module loaded: OK')  
 
+def write_trials_to_csv(task_params, output_file='precomputed_trials.csv', n_trials=1000):
+    stim_angles = []
+
+    for trial in range(n_trials):
+        stim_angle = misc.draw_angle(
+            task_params.ANGLE_SET,
+            task_params.ANGLE_SET_PROBABILITY_DICT
+        )
+        stim_angles.append(stim_angle)
+
+    # Save to CSV
+    output_path = Path(output_file)
+    with output_path.open('w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['trial', 'stim_angle'])
+        for i, angle in enumerate(stim_angles):
+            writer.writerow([i + 1, angle])
+
+    print(f"Wrote {n_trials} trials to {output_path}")
+
 class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
 
     TrialDataModel = Stage2TrialData
     protocol_name = 'stage2'
 
-    def __init__(self, *args, go_stim_time_s=5, nogo_stim_time=2, reward_amount_ul=3.0, **kwargs):
+    def __init__(self, *args, go_stim_time_s=5, nogo_stim_time_s=2, reward_amount_ul=3.0, psp_offset_time_s=0.2, iti_s=0.5, go_trial_probability=0.5, **kwargs):
         super().__init__(*args, **kwargs)
         self.task_params.BONSAI_EDITOR = True
         self.task_params['GO_STIM_TRIAL_S'] = go_stim_time_s
-        self.task_params['NOGO_STIM_TRIAL_S'] = nogo_stim_time
+        self.task_params['NOGO_STIM_TRIAL_S'] = nogo_stim_time_s
         self.task_params['REWARD_AMOUNT_UL'] = reward_amount_ul
-
+        self.task_params['QUIESCENT_PERIOD'] = psp_offset_time_s
+        self.task_params['ITI_DELAY_SECS'] = iti_s
+        self.task_params['ANGLE_SET_PROBABILITY_DICT'][90] = go_trial_probability
+        self.task_params['ANGLE_SET_PROBABILITY_DICT'][0] = 1 - go_trial_probability
+        write_trials_to_csv(self.task_params)
 
     @staticmethod
     def extra_parser():
         """:return: argparse.parser()"""
-        parser = super(ChoiceWorldSession, ChoiceWorldSession).extra_parser()
+        parser = super(Session, Session).extra_parser()
         parser.add_argument(
             '--reward_amount_ul',
             option_strings=['--reward_amount_ul'],
@@ -146,7 +172,7 @@ class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
             '--go_stim_time_s',
             dest='go_stim_time_s',
             default=5,
-            type=int,
+            type=float,
             required=False,
             metavar='Go Stim Time (s)',
             help='Go stim trial time (default: 5s)',
@@ -155,10 +181,37 @@ class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
             '--nogo_stim_time_s',
             dest='nogo_stim_time_s',
             default=2,
-            type=int,
+            type=float,
             required=False,
             metavar='NoGo Stim Time (s)',
             help='NoGo stim trial time (default: 2s)',
+        )
+        parser.add_argument(
+            '--psp_offset_time_s',
+            dest='psp_offset_time_s',
+            default=0.2,
+            type=float,
+            required=False,
+            metavar='PSP Offset Time (s)',
+            help='PSP = PSP offset time + x where x ranges from 0.2 to 0.5 (default: 0.2s)',
+        )
+        parser.add_argument(
+            '--iti_s',
+            dest='iti_s',
+            default=0.5,
+            type=float,
+            required=False,
+            metavar='Intertrial Interval (s)',
+            help='Intertrial interval is time between offset of stim and onset of PSP (default: 0.5s)',
+        )
+        parser.add_argument(
+            '--go_trial_probability',
+            dest='go_trial_probability',
+            default=0.5,
+            type=float,
+            required=False,
+            metavar='Go Trial Probability',
+            help='Probability of Go Trial (default: 0.5)',
         )
         return parser
 
@@ -170,6 +223,7 @@ class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
         self.start_mixin_valve()
         self.start_mixin_rotary_encoder()
         self.start_mixin_bonsai_visual_stimulus()
+        self.start_mixin_sound()
         self.bpod.register_softcodes(self.softcode_dictionary())
 
     def get_state_machine_trial(self, i):
@@ -186,11 +240,29 @@ class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
             )  # stop all sounds
 
         sma.add_state(
-            state_name='reset_rotary_encoder',
+            state_name='reset_rotary_encoder_1',
             state_timer=0,
             output_actions=[self.bpod.actions.rotary_encoder_reset],
-            state_change_conditions={'Tup': 'quiescent_period'},
+            state_change_conditions={'Tup': 'quiescent_period_1'},
+        ) # branch to PSP penalty branch 
+
+        sma.add_state(
+            state_name='quiescent_period_1',
+            state_timer=self.quiescent_period,
+            output_actions=[],
+            state_change_conditions={
+                'Tup': 'stim_on',
+                self.movement_left: 'reset_rotary_encoder_violation',
+                self.movement_right: 'reset_rotary_encoder_violation',
+            },
         )
+        
+        sma.add_state(
+            state_name='reset_rotary_encoder_violation',
+            state_timer=0,
+            output_actions=[self.bpod.actions.rotary_encoder_reset, self.bpod.actions.play_noise],
+            state_change_conditions={'Tup': 'quiescent_period'},
+        ) # penalizes PSP turn with white noise ONLY for first PSP violation 
 
         sma.add_state(
             state_name='quiescent_period',
@@ -203,6 +275,14 @@ class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
             },
         )
 
+        sma.add_state(
+            state_name='reset_rotary_encoder',
+            state_timer=0,
+            output_actions=[self.bpod.actions.rotary_encoder_reset],
+            state_change_conditions={'Tup': 'quiescent_period'},
+        )
+
+        
         sma.add_state(
             state_name='stim_on',
             state_timer=0.1,
@@ -232,7 +312,7 @@ class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
             state_change_conditions={'Tup': 'closed_loop'},
         )
 
-        if self.stim_angle == 0:
+        if self.stim_angle == 90: 
             sma.add_state(
                 state_name='closed_loop',
                 state_timer=self.task_params.GO_STIM_TRIAL_S,
@@ -258,14 +338,14 @@ class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
             state_name='correct_rejection',
             state_timer=0,
             output_actions=[self.bpod.actions.bonsai_show_center],
-            state_change_conditions={'Tup': 'reward'},
+            state_change_conditions={'Tup': 'correct'},
         )
 
         for error_state in ['forward_freeze_error', 'backward_freeze_error']:
             sma.add_state(
                 state_name=error_state,
                 state_timer=0,
-                output_actions=[self.bpod.actions.bonsai_freeze_stim],
+                output_actions=[self.bpod.actions.bonsai_freeze_stim, self.bpod.actions.play_noise],
                 state_change_conditions={'Tup': 'error'},
             )
 
@@ -345,7 +425,7 @@ class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
 
     def trial_completed(self, bpod_data: dict[str, Any]) -> None:
         event_timestamps = bpod_data['States timestamps']
-        go_stim_on = self.stim_angle == 0
+        go_stim_on = self.stim_angle == 90
         logger.info(event_timestamps)
 
         response_time = np.nan
@@ -371,7 +451,7 @@ class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
         else:
             outcome = "undefined"  # fallback safety
 
-        trial_reward = self.default_reward_amount if outcome in ("hit", "correct_rejection") else 0.0
+        trial_reward = self.default_reward_amount if outcome in "hit" else 0.0
 
         pre_stim_period_lengths = [event_timestamps['quiescent_period'][i][1] - event_timestamps['quiescent_period'][i][0] for i in range(len(event_timestamps['quiescent_period']))]
         
@@ -390,15 +470,21 @@ class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
         self.save_trials_table_to_csv()
 
 
-    def draw_next_trial_info(self, pleft=0.5, **kwargs):
+    def draw_next_trial_info(self, **kwargs):
         """Draw next trial variables.
-
         calls :meth:`send_trial_info_to_bonsai`.
         This is called by the `next_trial` method before updating the Bpod state machine.
         """
         assert len(self.task_params.STIM_POSITIONS) == 2, 'Only two positions are supported'
         contrast = 1
-        self.stim_angle = misc.draw_angle(self.task_params.ANGLE_SET, self.task_params.ANGLE_SET_PROBABILITY_TYPE)
+        # self.stim_angle = misc.draw_angle(self.task_params.ANGLE_SET, self.task_params.ANGLE_SET_PROBABILITY_TYPE)
+        self.stim_angle = misc.draw_angle(self.task_params.ANGLE_SET, self.task_params.ANGLE_SET_PROBABILITY_DICT)
+        # switch angle for Bonsai since Bonsai interprets 0 as vertical grating and 90 as 
+        # horizontal grating 
+        if self.stim_angle == 0:
+            bonsai_angle = 90
+        else:
+            bonsai_angle = 0
         quiescent_period = self.task_params.QUIESCENT_PERIOD + misc.truncated_exponential(
             scale=0.35, min_value=0.2, max_value=0.5
         )
@@ -406,23 +492,28 @@ class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
         self.trials_table.at[self.trial_num, 'contrast'] = contrast
         self.trials_table.at[self.trial_num, 'stim_phase'] = random.uniform(0, 2 * math.pi)
         self.trials_table.at[self.trial_num, 'stim_sigma'] = self.task_params.STIM_SIGMA
-        self.trials_table.at[self.trial_num, 'stim_angle'] = self.stim_angle
+        self.trials_table.at[self.trial_num, 'stim_angle'] = bonsai_angle
         self.trials_table.at[self.trial_num, 'stim_gain'] = self.stimulus_gain
         self.trials_table.at[self.trial_num, 'stim_freq'] = self.task_params.STIM_FREQ
         self.trials_table.at[self.trial_num, 'trial_num'] = self.trial_num
         self.trials_table.at[self.trial_num, 'reward_amount'] = self.default_reward_amount
-
         # use the kwargs dict to override computed values
         for key, value in kwargs.items():
             if key == 'index':
                 pass
             self.trials_table.at[self.trial_num, key] = value
-
         self.send_trial_info_to_bonsai()
 
     def show_trial_log(self, extra_info: dict[str, Any] | None = None, log_level: int = logging.INFO):
         # construct base info dict
         trial_info = self.trials_table.iloc[self.trial_num]
+        if self.trials_table.loc[self.trial_num, 'stim_angle'] == 0:
+            self.trials_table.loc[self.trial_num, 'stim_angle'] = 90
+        else:
+            self.trials_table.loc[self.trial_num, 'stim_angle'] = 0
+
+        trial_info = self.trials_table.loc[self.trial_num]
+
         info_dict = {
             'Stim. Angle': trial_info.stim_angle,
             'Stim. Phase': f'{trial_info.stim_phase:.2f}',

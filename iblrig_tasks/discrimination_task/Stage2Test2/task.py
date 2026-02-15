@@ -136,7 +136,7 @@ class Session(CustomVisualStimulusMixin, ChoiceWorldSession):
     @staticmethod
     def extra_parser():
         """:return: argparse.parser()"""
-        parser = super(ChoiceWorldSession, ChoiceWorldSession).extra_parser()
+        parser = super(Session, Session).extra_parser()
         parser.add_argument(
             '--reward_amount_ul',
             option_strings=['--reward_amount_ul'],

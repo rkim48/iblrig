@@ -32,7 +32,7 @@ class Session(ChoiceWorldSession):
 
     @staticmethod
     def extra_parser():
-        parser = super(ChoiceWorldSession, ChoiceWorldSession).extra_parser()
+        parser = super(Session, Session).extra_parser()
         parser.add_argument(
             '--response_period_s',
             option_strings=['--response_period_s'],
