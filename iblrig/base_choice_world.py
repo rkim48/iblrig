@@ -201,14 +201,12 @@ class ChoiceWorldSession(
             self.bpod.run_state_machine(sma)  # Locks until state machine 'exit' is reached
             time_last_trial_end = time.time()
             # handle pause event
-            flag_pause = self.paths.SESSION_FOLDER.joinpath('.pause')
-            flag_stop = self.paths.SESSION_FOLDER.joinpath('.stop')
-            if flag_pause.exists() and i < (self.task_params.NTRIALS - 1):
-                log.info(f'Pausing session inbetween trials {i} and {i + 1}')
-                while flag_pause.exists() and not flag_stop.exists():
+            if self.paused and trial_number < (self.task_params.NTRIALS - 1):
+                log.info(f'Pausing session inbetween trials {trial_number} and {trial_number + 1}')
+                while self.paused and not self.stopped:
                     time.sleep(1)
                 self.trials_table.at[self.trial_num, 'pause_duration'] = time.time() - time_last_trial_end
-                if not flag_stop.exists():
+                if not self.stopped:
                     log.info('Resuming session')
 
             # save trial and update log
@@ -217,9 +215,8 @@ class ChoiceWorldSession(
             self.show_trial_log()
 
             # handle stop event
-            if flag_stop.exists():
-                log.info('Stopping session after trial %d', i)
-                flag_stop.unlink()
+            if self.stopped:
+                log.info('Stopping session after trial %d', trial_number)
                 break
 
     def mock(self, file_jsonable_fixture=None):
@@ -522,8 +519,13 @@ class ChoiceWorldSession(
         self.session_info.NTRIALS += 1
         # SAVE TRIAL DATA
         self.save_trial_data_to_json(bpod_data)
-        # this is a flag for the online plots. If online plots were in pyqt5, there is a file watcher functionality
-        Path(self.paths['DATA_FILE_PATH']).parent.joinpath('new_trial.flag').touch()
+
+        # save ambient data
+        if self.hardware_settings.device_bpod.USE_AMBIENT_MODULE:
+            self.ambient_sensor_table.iloc[self.trial_num] = (sensor_reading := self.bpod.get_ambient_sensor_reading())
+            with self.paths['AMBIENT_FILE_PATH'].open('ab') as f:
+                binary.write_array(f, [self.trial_num, *sensor_reading], DTYPE_AMBIENT_SENSOR_BIN)
+
         self.paths.SESSION_FOLDER.joinpath('transfer_me.flag').touch()
         self.check_sync_pulses(bpod_data=bpod_data)
 
@@ -746,6 +748,16 @@ class ActiveChoiceWorldSession(ChoiceWorldSession):
                 stderr=subprocess.STDOUT,
             )
         super()._run()
+
+    def _finalize(self):
+        if isinstance(self.plot_subprocess, subprocess.Popen) and self.plot_subprocess.poll() is None:
+            log.info('Terminating subprocess: online plots')
+            self.plot_subprocess.terminate()
+            try:
+                self.plot_subprocess.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                log.warning('Process did not terminate within 5 seconds - killing it.')
+                self.plot_subprocess.kill()
 
     def show_trial_log(self, extra_info: dict[str, Any] | None = None, log_level: int = logging.INFO):
         # construct info dict

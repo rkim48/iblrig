@@ -16,6 +16,7 @@ import signal
 import sys
 import time
 import traceback
+import weakref
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from collections.abc import Callable
@@ -38,7 +39,7 @@ from iblrig.hardware import SOFTCODE, Bpod, RotaryEncoderModule, sound_device_fa
 from iblrig.hifi import HiFi
 from iblrig.path_helper import load_pydantic_yaml
 from iblrig.pydantic_definitions import HardwareSettings, RigSettings, TrialDataModel
-from iblrig.tools import call_bonsai, get_number
+from iblrig.tools import InputThread, call_bonsai, get_number
 from iblrig.transfer_experiments import BehaviorCopier, VideoCopier
 from iblrig.valve import Valve
 from iblutil.io.net.base import ExpMessage
@@ -74,6 +75,9 @@ class BaseSession(ABC):
     """list of str: An optional list of pipeline task class names to instantiate when preprocessing task data."""
 
     TrialDataModel: type[TrialDataModel]
+
+    _stop_flag = False
+    _pause_flag = False
 
     @property
     @abstractmethod
@@ -130,16 +134,16 @@ class BaseSession(ABC):
         self.init_datetime = datetime.datetime.now()
 
         # loads in the settings: first load the files, then update with the input argument if provided
-        self.hardware_settings: HardwareSettings = load_pydantic_yaml(HardwareSettings, file_hardware_settings)
-        if hardware_settings is not None:
-            self.hardware_settings.update(hardware_settings)
-            HardwareSettings.model_validate(self.hardware_settings)
-        self.iblrig_settings: RigSettings = load_pydantic_yaml(RigSettings, file_iblrig_settings)
-        if iblrig_settings is not None:
-            self.iblrig_settings.update(iblrig_settings)
-            RigSettings.model_validate(self.iblrig_settings)
+        self._load_settings(
+            file_hardware_settings=file_hardware_settings,
+            hardware_settings=hardware_settings,
+            file_iblrig_settings=file_iblrig_settings,
+            iblrig_settings=iblrig_settings,
+        )
 
         self.wizard = wizard
+        if self.wizard:
+            self._input_thread = InputThread(self._stdin_callback)
 
         # Load the tasks settings, from the task folder or override with the input argument
         self.task_params = self.read_task_parameter_files(task_parameter_file)
@@ -173,6 +177,62 @@ class BaseSession(ABC):
             stub,
             extractors=self.extractor_tasks,
         )
+        self.finalize = weakref.finalize(self, self._finalize)
+
+    def _finalize(self):  # noqa: B027
+        """Clean-up tasks prior to destroying the object"""
+
+    @property
+    def session_path(self) -> Path | None:
+        return getattr(self, 'paths', {}).get('SESSION_FOLDER', None)
+
+    def _stdin_callback(self, message: bytes):
+        match message:
+            case b'stop':
+                self.stop()
+            case b'pause':
+                log.warning('Pausing session at the end of the current trial')
+                self.pause()
+            case b'resume':
+                self.resume()
+
+    def stop(self, *_) -> None:
+        """Gracefully stop the session."""
+        log.warning('Stopping session at the end of the current trial')
+        self._stop_flag = True
+
+    def pause(self) -> None:
+        """Pause the session."""
+        self._pause_flag = True
+
+    def resume(self) -> None:
+        """Resume the session."""
+        self._pause_flag = False
+
+    @property
+    def stopped(self) -> bool:
+        return self._stop_flag
+
+    @property
+    def paused(self) -> bool:
+        return self._pause_flag
+
+    def _load_settings(
+        self,
+        file_hardware_settings: Path | str | None = None,
+        hardware_settings: dict | None = None,
+        file_iblrig_settings: Path | str | None = None,
+        iblrig_settings: dict | None = None,
+        **_,
+    ):
+        self.hardware_settings: HardwareSettings = load_pydantic_yaml(HardwareSettings, file_hardware_settings)
+        if hardware_settings is not None:
+            self.hardware_settings.update(hardware_settings)
+            HardwareSettings.model_validate(self.hardware_settings)
+        self.iblrig_settings: RigSettings = load_pydantic_yaml(RigSettings, file_iblrig_settings)
+        if iblrig_settings is not None:
+            self.iblrig_settings.update(iblrig_settings)
+            RigSettings.model_validate(self.iblrig_settings)
 
     @classmethod
     def get_task_file(cls) -> Path:
@@ -621,17 +681,10 @@ class BaseSession(ABC):
         if self.session_info.SUBJECT_WEIGHT is None and self.interactive and first_protocol:
             self.session_info.SUBJECT_WEIGHT = get_number('Subject weight (g): ', float, lambda x: x > 0)
 
-        def sigint_handler(*args, **kwargs):
-            # create a signal handler for a graceful exit: create a stop flag in the session folder
-            self.paths.SESSION_FOLDER.joinpath('.stop').touch()
-            log.critical('SIGINT signal detected, will exit at the end of the trial')
-
-        # if upon starting there is a flag just remove it, this is to prevent killing a session in the egg
-        if self.paths.SESSION_FOLDER.joinpath('.stop').exists():
-            self.paths.SESSION_FOLDER.joinpath('.stop').unlink()
-
-        signal.signal(signal.SIGINT, sigint_handler)
+        signal.signal(signal.SIGINT, self.stop)
         self._run()  # runs the specific task logic i.e. trial loop etc...
+        self.paths['SESSION_FOLDER'].joinpath('transfer_me.flag').touch()  # ensure that the transfer_me.flag is created
+
         # post task instructions
         log.critical('Graceful exit')
         log.info(f'Session {self.paths.SESSION_RAW_DATA_FOLDER}')
@@ -1454,6 +1507,5 @@ class SpontaneousSession(BaseSession):
             time.sleep(1.5)
             if self.duration_secs is not None and self.time_elapsed.seconds > self.duration_secs:
                 break
-            if self.paths.SESSION_FOLDER.joinpath('.stop').exists():
-                self.paths.SESSION_FOLDER.joinpath('.stop').unlink()
+            if self.stopped:
                 break
