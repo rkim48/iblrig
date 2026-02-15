@@ -1,8 +1,9 @@
 % Get the directory of the current script
-base_path = fileparts(mfilename('fullpath'));
-addpath(genpath(fullfile(base_path, 'util')));
-addpath(fullfile(base_path, 'lib', 'xippmex'));
-load(fullfile(base_path, 'util', 'beep.mat'),'y');
+this_dir = fileparts(mfilename('fullpath'));
+matlab_root = fileparts(this_dir);
+addpath(genpath(fullfile(matlab_root, 'util')));
+addpath(fullfile(matlab_root, 'lib', 'xippmex'));
+load(fullfile(matlab_root, 'util', 'beep.mat'),'y');
 
 %% Trek Hardware Initialization (takes a minute)
 ripple;
