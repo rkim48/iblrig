@@ -205,3 +205,8 @@ relative_files = true
 
 [tool.coverage.report]
 skip_empty = true
+
+[tool.uv.workspace]
+members = [
+    "venv",
+]

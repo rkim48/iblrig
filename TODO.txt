@@ -1,0 +1,12 @@
+Install 
+https://int-brain-lab.github.io/iblrig/installation.html
+
+All tasks inherit from the iblrig.base_tasks.BaseSession class 
+https://int-brain-lab.github.io/iblrig/reference.html#guide-to-develop-a-custom-task
+Ideally all scripts stored in ...
+Staircase
+
+Method of constant stimuli
+
+Discrimination 
+
