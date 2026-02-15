@@ -1,6 +1,8 @@
-addpath(genpath('C:\iblrigv8\matlab\util\'));
-addpath('C:\iblrigv8\matlab\lib\xippmex\');
-load('beep.mat','y');
+% Get the directory of the current script
+base_path = fileparts(mfilename('fullpath'));
+addpath(genpath(fullfile(base_path, 'util')));
+addpath(fullfile(base_path, 'lib', 'xippmex'));
+load(fullfile(base_path, 'util', 'beep.mat'),'y');
 
 %% Trek Hardware Initialization (takes a minute)
 ripple;
@@ -26,7 +28,8 @@ ripple_ch_NOGO = 27;
 %CNL41 40 115 124 27
 % Write stim trials to CSV
 write_trials_to_csv(p_go, total_trials, ripple_ch_GO, ripple_ch_NOGO);
-trial_table = readtable('C:/Users/xiela/OneDrive/Desktop/precomputed_trials.csv');
+repo_root = fileparts(base_path);
+trial_table = readtable(fullfile(repo_root, 'precomputed_trials.csv'));
 
 %% Start experiment
 

@@ -1,6 +1,8 @@
-addpath(genpath('C:\iblrigv8\matlab\util\'));
-addpath('C:\iblrigv8\matlab\lib\xippmex\');
-load('beep.mat','y');
+% Get the directory of the current script
+base_path = fileparts(mfilename('fullpath'));
+addpath(genpath(fullfile(base_path, 'util')));
+addpath(fullfile(base_path, 'lib', 'xippmex'));
+load(fullfile(base_path, 'util', 'beep.mat'),'y');
 
 %% Trek Hardware Initialization (takes a minute)
 ripple;
@@ -16,8 +18,13 @@ currents_uA = [0 2];
 channels    = [10 11 21 31];
 num_trials_per_parameter = 1;
 
-% Save CSV to Desktop (recommended robust way)
-path = 'C:\Users\xiela\OneDrive\Desktop';
+% Save CSV to data folder in repository root if it exists, otherwise use home directory
+repo_root = fileparts(base_path);
+if exist(fullfile(repo_root, 'data'), 'dir')
+    path = fullfile(repo_root, 'data');
+else
+    path = fullfile(char(java.lang.System.getProperty('user.home')), 'Documents', 'iblrig_data');
+end
 base_name = 'wf_stim';
 
 % Generate CSV + get the trial table

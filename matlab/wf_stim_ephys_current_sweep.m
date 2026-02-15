@@ -1,6 +1,8 @@
-addpath(genpath('C:\iblrigv8\matlab\util\'));
-addpath('C:\iblrigv8\matlab\lib\xippmex\');
-load('beep.mat','y');
+% Get the directory of the current script
+base_path = fileparts(mfilename('fullpath'));
+addpath(genpath(fullfile(base_path, 'util')));
+addpath(fullfile(base_path, 'lib', 'xippmex'));
+load(fullfile(base_path, 'util', 'beep.mat'),'y');
 
 %% Trek Hardware Initialization (takes a minute)
 ripple;
@@ -18,7 +20,13 @@ xippmex('stim','res', elecs, 1);          % 1 uA resolution (important for ampli
 xippmex('stim','enable',1);
 
 %% ---------------- Create save folder + start ephys recording ----------------
-parent_dir = 'C:\Users\xiela\OneDrive\Desktop\Albert';  % <-- change to your lab data root
+% Default to a data folder in the repository root if it exists, otherwise use home directory
+repo_root = fileparts(base_path);
+if exist(fullfile(repo_root, 'data'), 'dir')
+    parent_dir = fullfile(repo_root, 'data');
+else
+    parent_dir = fullfile(char(java.lang.System.getProperty('user.home')), 'Documents', 'iblrig_data');
+end
 animal_dir = uigetdir(parent_dir,'Select animal folder');
 date_str   = datestr(now, 'yyyy-mm-dd');
 save_path  = fullfile(animal_dir, date_str, 'WF_StimSurvey');

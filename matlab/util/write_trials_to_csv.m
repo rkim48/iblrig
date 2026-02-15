@@ -6,7 +6,10 @@ function write_trials_to_csv(p_go, n_trials, ripple_ch_GO, ripple_ch_NOGO)
         ripple_ch_NOGO (1,1) double 
     end
 
-    output_file = 'C:/Users/xiela/OneDrive/Desktop/precomputed_trials.csv'; 
+    % Get the repository root (one level up from the 'util' folder)
+    base_path = fileparts(mfilename('fullpath'));
+    repo_root = fileparts(base_path);
+    output_file = fullfile(repo_root, 'precomputed_trials.csv'); 
 
     if p_go < 0 || p_go > 1
         error('p_go must be between 0 and 1');
