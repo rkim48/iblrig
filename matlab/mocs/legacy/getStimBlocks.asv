@@ -1,0 +1,54 @@
+function [shuffledCurrentArr, shuffledStimParamArr] = getStimBlocks(expStruct)
+    
+    expType = expStruct.experimentType;
+    expParam = expStruct.experimentParam;
+
+    if strcmp(expType,'Survey')
+        assert(isfield(expStruct,'surveyStruct'),...
+            'No survey structure assigned as a field to the experiment structure');
+        surveyStruct = expStruct.surveyStruct;
+        currentArr = surveyStruct.currentArr;
+        paramVal = surveyStruct.paramVal;
+        trialsPerCurrent = surveyStruct.trialsPerCurrent;
+        totalTrials = surveyStruct.totalTrials;
+        
+        currentRepMat = repmat(currentArr, trialsPerCurrent, 1);
+        currentRepMat = reshape(currentRepMat.',[],1); % reshape to vector
+        stimParamRepMat = repmat(paramVal', trialsPerCurrent, size(currentArr,2));
+        stimParamRepMat = reshape(stimParamRepMat.',[],1); % reshape to vector
+        shuffleIdx = randperm(totalTrials);
+        shuffledCurrentArr = currentRepMat(shuffleIdx);
+        shuffledStimParamArr = stimParamRepMat(shuffleIdx);
+
+    else
+        blocks = cell(4,1);
+        currentArr = expStruct.currentArr;
+        if strcmp(expParam,'Frequency')
+            paramVal = expStruct.stimFreqArr;
+        elseif strcmp(expParam, 'Pulse width')
+            paramVal = expStruct.stimPulseWidthsArr;
+        end
+        trialsPerCurrent = expStruct.trialsPerCurrent;
+        totalTrials = expStruct.totalTrials;
+        catchTrials = zeros(trialsPerCurrent,1); % trialsPerCurrent catch trials only 
+
+        currentRepMat = repmat(currentArr, trialsPerCurrent, 1);
+        currentRepMat = reshape(currentRepMat.',[],1); % reshape to vector
+        currentRepMat = [currentRepMat; catchTrials]; % append catch trials
+        stimParamRepMat = repmat(paramVal', trialsPerCurrent, size(currentArr,2));
+        stimParamRepMat = reshape(stimParamRepMat.',[],1);
+        stimParamRepMat = [stimParamRepMat; catchTrials];
+
+        shuffleIdx = randperm(totalTrials);
+        shuffledCurrentArr = currentRepMat(shuffleIdx);
+        shuffledStimParamArr = stimParamRepMat(shuffleIdx);
+        for i = 1:4
+            blockLength = totalTrials/4;
+            startIdx = blockLength*(i-1) + 1;
+            endIdx = i + i * 1;
+            blocks{i,1} = shuffledCurrentArr(i:i)
+            blocks{i,2} = 
+        end
+    end
+
+end
