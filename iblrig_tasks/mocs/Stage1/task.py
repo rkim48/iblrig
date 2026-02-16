@@ -57,7 +57,7 @@ class Session(ChoiceWorldSession):
             state_name='trial_start',
             state_timer=0,
             state_change_conditions={'Tup': 'reset_rotary_encoder_PSP'},
-            output_actions=[('BNC2', 255)], # Start Imaging
+            output_actions=[], 
         )
 
         sma.add_state(
@@ -127,7 +127,7 @@ class Session(ChoiceWorldSession):
         sma.add_state(
             state_name='ITI',
             state_timer=self.task_params.ITI_S,
-            output_actions=[('BNC2', 255)], # Stop Imaging (Toggle)
+            output_actions=[],
             state_change_conditions={'Tup': 'exit_state'},
         )
 

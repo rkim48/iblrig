@@ -8,6 +8,7 @@ matlab_root = fileparts(this_dir);
 
 % Add utility paths
 addpath(fullfile(matlab_root, 'util'));
+addpath(fullfile(matlab_root, 'lib', 'channel_maps'));
 
 expStruct.animalID = animalID;
 expStruct.sessionDate = datetime("today");
